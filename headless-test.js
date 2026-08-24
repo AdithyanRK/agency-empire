@@ -602,6 +602,23 @@ setTimeout(async () => {
     log.push(['drift valve per-candidate', drifted + ' candidates seated in 2s']);
     state = freshState(); resetFloor(); modalOpen = false;
 
+    // the Manager desk offers a working "Start over" that wipes progress
+    state = freshState(); resetFloor(); state.tut = TUT.length; modalOpen = false; gameOver = false;
+    state.cash = 9000; state.placed = 42; state.hires = { sourcer:2, rec:1, am:1, fin:1 }; syncEmp();
+    state.ups.printer = 3; state.payOn = true;
+    panelOpen = false; at(147, 502); tick(10);
+    const resetRow = els['panelRows'].children.find(r => r._inner && r._inner.includes('Start over'));
+    if (!resetRow || !resetRow.children[0]) throw new Error('no Start over option at the Manager desk');
+    resetRow.children[0].onclick();
+    const yes = els['mBtns'].children.find(b => b.className.includes('pri'));
+    if (!yes) throw new Error('no confirm button on the reset modal');
+    yes.onclick();
+    tick(1);
+    if (state.placed !== 0 || state.ups.printer !== 0 || state.payOn) throw new Error('reset did not clear progress');
+    if (state.cash !== START_CASH) throw new Error('reset did not restore starting cash: ' + state.cash);
+    log.push(['start over', 'wipes progress, back to ' + fmt(START_CASH)]);
+    state = freshState(); resetFloor(); modalOpen = false; panelOpen = false;
+
     // client patience is not inert: an unservable client eventually walks out
     state = freshState(); resetFloor(); state.tut = TUT.length; gameOver = false; modalOpen = false;
     state.payOn = false; candidates.length = 0; clients.length = 0; bills.length = 0;

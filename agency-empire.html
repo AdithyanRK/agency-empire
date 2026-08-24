@@ -511,6 +511,27 @@ function buildPanel() {
     row.appendChild(b); box.appendChild(row);
   });
 
+  const rs = document.createElement('div'); rs.className = 'row tb-team';
+  rs.innerHTML = tile('\u21BA', '#8A8078') +
+    '<div class="info"><div class="nm">Start over</div>' +
+    '<div class="ds">Wipe this save and begin a brand new game</div></div>';
+  const rsb = document.createElement('button'); rsb.className = 'buy';
+  rsb.style.background = 'linear-gradient(#C97A6A,#A8503E)';
+  rsb.textContent = 'Reset';
+  rsb.onclick = () => {
+    panelOpen = false; $('panel').classList.remove('show');
+    showModal('Start over?',
+      'This wipes your save and starts a brand new game. Your offices, staff, upgrades and cash are all lost.',
+      [ { label:'Cancel' },
+        { label:'Yes, start over', pri:true, fn: () => {
+            // reset synchronously, then let saveGame overwrite the stored save
+            state = freshState(); resetFloor(); gameOver = false;
+            cashEverPicked = false; hintIT = false; hintHC = false;
+            applyHud(); saveGame(); toast('New game started');
+          } } ]);
+  };
+  rs.appendChild(rsb); box.appendChild(rs);
+
   UPCATS.forEach(cat => {
     const hd = document.createElement('div'); hd.className = 'cat tb-ups'; hd.textContent = cat[0];
     box.appendChild(hd);
@@ -1854,7 +1875,11 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) saveG
 
 (async function boot() {
   resize();
-  const loaded = await loadGame();
+  let wiped = false;
+  try {
+    if (/[?&#]reset\b/.test(location.search + location.hash)) { await wipeSave(); wiped = true; }
+  } catch(e) {}
+  const loaded = wiped ? null : await loadGame();
   if (loaded && typeof loaded.cash === 'number' && isFinite(loaded.cash)) {
     state = Object.assign(freshState(), loaded);
     state.ups = Object.assign(freshOffice().ups, loaded.ups || {});
