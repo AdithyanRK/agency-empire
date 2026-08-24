@@ -1,0 +1,1877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Agency Empire" />
+  <meta name="theme-color" content="#241F17" />
+<title>Agency Empire</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink:#3B3227; --ink2:#6E6250; --paper:#FFF9EE; --card:#FFFFFF;
+    --line:#EFE4CC; --gold:#FFC93C; --gold-d:#D9A31B; --gold-ink:#7A5A08;
+    --buy:#58B368; --buy-d:#3E8E4A; --danger:#E25C4A; --shade:rgba(59,50,39,0.55);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; overflow:hidden; background:#241F17; font-family:'Fredoka',system-ui,sans-serif; }
+  body { display:flex; align-items:center; justify-content:center; }
+  #wrap { position:relative; }
+  canvas { display:block; touch-action:none; }
+  .hud { position:absolute; top:0; left:0; right:0; padding:calc(10px + env(safe-area-inset-top, 0px)) calc(12px + env(safe-area-inset-right, 0px)) 10px calc(12px + env(safe-area-inset-left, 0px)); display:flex; align-items:flex-start; justify-content:space-between; pointer-events:none; z-index:5; }
+  .chip { background:var(--shade); backdrop-filter:blur(3px); color:#FFF6E4; border-radius:16px; padding:8px 13px; font-size:14px; font-weight:600; line-height:1.2; box-shadow:0 3px 0 rgba(0,0,0,0.18); }
+  .chip small { display:block; font-size:11px; opacity:0.8; font-weight:500; }
+  #cash { display:flex; align-items:center; gap:8px; font-size:23px; font-weight:700; color:var(--gold-ink); background:linear-gradient(#FFE9A8,#FFD75E); padding:7px 18px 7px 12px; border-radius:22px; box-shadow:0 4px 0 var(--gold-d), 0 6px 12px rgba(0,0,0,0.25); transition:transform 0.12s; }
+  #cash.pop { transform:scale(1.08); }
+  #cash::before { content:''; width:22px; height:22px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #FFE9A8, #E8B93C 60%, #C9922A); box-shadow:inset 0 -2px 0 rgba(0,0,0,0.15); }
+  .hbtns { display:flex; gap:8px; }
+  .hbtn { pointer-events:auto; width:42px; height:42px; border-radius:50%; border:none; background:var(--shade); backdrop-filter:blur(3px); color:#FFF6E4; font-size:17px; font-weight:600; cursor:pointer; font-family:inherit; box-shadow:0 3px 0 rgba(0,0,0,0.22); }
+  .hbtn:active { transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,0.22); }
+  #objective { position:absolute; top:112px; left:50%; transform:translateX(-50%); background:var(--paper); color:var(--ink); padding:9px 18px; border-radius:16px; font-size:14px; font-weight:600; z-index:5; pointer-events:none; white-space:nowrap; box-shadow:0 4px 0 rgba(59,50,39,0.18), 0 6px 14px rgba(0,0,0,0.2); }
+  #toast { position:absolute; bottom:calc(26px + env(safe-area-inset-bottom, 0px)); left:50%; transform:translateX(-50%); background:var(--shade); backdrop-filter:blur(3px); color:#FFF6E4; padding:11px 20px; border-radius:16px; font-size:14px; font-weight:500; z-index:8; pointer-events:none; opacity:0; transition:opacity 0.3s, transform 0.3s; box-shadow:0 4px 0 rgba(0,0,0,0.2); }
+  .ov { position:absolute; inset:0; background:rgba(20,16,10,0.5); z-index:10; display:none; align-items:flex-end; justify-content:center; }
+  .ov.show { display:flex; }
+  .card { background:var(--paper); width:100%; max-height:82%; border-radius:26px 26px 0 0; padding:10px 14px 24px; overflow-y:auto; box-shadow:0 -8px 30px rgba(0,0,0,0.3); }
+  .handle { width:44px; height:5px; border-radius:3px; background:#D8CCB2; margin:2px auto 10px; }
+  .phead { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .phead h2 { font-size:19px; color:var(--ink); }
+  .pcash { font-size:15px; font-weight:700; color:var(--gold-ink); background:linear-gradient(#FFE9A8,#FFD75E); padding:5px 13px; border-radius:14px; box-shadow:0 2px 0 var(--gold-d); }
+  .tabs { display:flex; gap:6px; background:#EFE6D2; padding:5px; border-radius:16px; margin-bottom:12px; }
+  .tab { flex:1; border:none; font-family:inherit; font-size:14px; font-weight:600; color:var(--ink2); background:transparent; padding:9px 4px; border-radius:12px; cursor:pointer; }
+  .tab.on { background:var(--card); color:var(--ink); box-shadow:0 2px 0 rgba(59,50,39,0.12); }
+  .row { display:none; align-items:center; gap:11px; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:10px 11px; margin-bottom:8px; box-shadow:0 2px 0 rgba(59,50,39,0.06); }
+  .card.t-team .row.tb-team, .card.t-ups .row.tb-ups, .card.t-verts .row.tb-verts { display:flex; }
+  .cat { display:none; font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:#A8987A; margin:10px 4px 6px; }
+  .card.t-ups .cat.tb-ups { display:block; }
+  .tile { flex:none; width:42px; height:42px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:17px; font-weight:700; color:#fff; box-shadow:inset 0 -3px 0 rgba(0,0,0,0.18); }
+  .row .info { flex:1; min-width:0; }
+  .row .nm { font-size:14.5px; font-weight:600; color:var(--ink); }
+  .row .ds { font-size:12px; color:var(--ink2); }
+  .pips { display:flex; gap:3px; margin-top:4px; }
+  .pip { width:15px; height:5px; border-radius:3px; background:#E9DEC4; }
+  .pip.on { background:var(--gold-d); }
+  .buy { border:none; border-radius:13px; padding:10px 14px; font-family:inherit; font-size:14px; font-weight:700; color:#fff; background:linear-gradient(#6BC47A,var(--buy)); box-shadow:0 3px 0 var(--buy-d); cursor:pointer; white-space:nowrap; min-width:72px; }
+  .buy:active { transform:translateY(2px); box-shadow:0 1px 0 var(--buy-d); }
+  .buy:disabled { background:#D5CBB4; box-shadow:0 3px 0 #B8AD94; color:#FFFDF6; cursor:default; }
+  .buy.max { background:linear-gradient(#C9BFA6,#B4A98E); box-shadow:0 3px 0 #9A8F76; }
+  .buy:focus-visible, .tab:focus-visible, .hbtn:focus-visible { outline:3px solid #7AB8FF; outline-offset:2px; }
+  .closeb { width:100%; margin-top:10px; border:none; border-radius:16px; padding:14px; font-family:inherit; font-size:15px; font-weight:700; background:var(--ink); color:#FFF6E4; cursor:pointer; box-shadow:0 4px 0 #201A12; }
+  .closeb:active { transform:translateY(2px); box-shadow:0 2px 0 #201A12; }
+  .mcard { background:var(--paper); border-radius:22px; padding:24px 20px; margin:0 22px; max-width:360px; text-align:center; align-self:center; box-shadow:0 10px 30px rgba(0,0,0,0.35); }
+  .ov.center { align-items:center; }
+  .mcard h2 { font-size:20px; color:var(--ink); margin-bottom:8px; }
+  .mcard p { font-size:14px; color:var(--ink2); line-height:1.5; margin-bottom:18px; }
+  .mrow { display:flex; gap:10px; }
+  .mbtn { flex:1; border:none; border-radius:14px; padding:13px; font-family:inherit; font-size:15px; font-weight:700; cursor:pointer; }
+  .mbtn.pri { background:linear-gradient(#6BC47A,var(--buy)); color:#fff; box-shadow:0 3px 0 var(--buy-d); }
+  .mbtn.sec { background:#EDE3CC; color:#5C5240; box-shadow:0 3px 0 #D3C6A8; }
+  .mbtn:active { transform:translateY(2px); box-shadow:none; }
+  @media (prefers-reduced-motion: reduce) { #cash, #toast, .buy, .mbtn, .closeb, .hbtn { transition:none; } }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game"></canvas>
+  <div class="hud">
+    <div class="chip" id="countryChip">India office<small id="passiveTxt"></small></div>
+    <div class="chip" id="payChip" style="position:absolute;left:50%;top:62px;transform:translateX(-50%);white-space:nowrap">Payroll</div>
+    <div id="cash">$0</div>
+    <div class="hbtns">
+      <button class="hbtn" id="sndBtn">&#128266;</button>
+    </div>
+  </div>
+  <div id="objective"></div>
+  <div id="toast"></div>
+  <div class="ov" id="panel">
+    <div class="card t-team" id="panelCard">
+      <div class="handle"></div>
+      <div class="phead"><h2>Manager desk</h2><div class="pcash" id="panelCash">$0</div></div>
+      <div class="tabs">
+        <button class="tab on" data-tab="team" id="tabTeam">Team</button>
+        <button class="tab" data-tab="ups" id="tabUps">Upgrades</button>
+        <button class="tab" data-tab="verts" id="tabVerts">Industries</button>
+      </div>
+      <div id="panelRows"></div>
+      <button class="closeb" id="panelClose">Back to the floor</button>
+    </div>
+  </div>
+  <div class="ov center" id="modal">
+    <div class="mcard">
+      <h2 id="mTitle"></h2>
+      <p id="mBody"></p>
+      <div class="mrow" id="mBtns"></div>
+    </div>
+  </div>
+</div>
+<script>
+'use strict';
+const VW = 820, VH = 1120;
+const cv = document.getElementById('game');
+let ctx = cv.getContext('2d');
+const wrap = document.getElementById('wrap');
+
+const VERTS = {
+  bc: { name:'Trades', color:'#B15B3E', dark:'#6B3120', fee:17 },
+  it: { name:'IT staffing', color:'#4A90D9', dark:'#1E4E82', fee:40 },
+  hc: { name:'Healthcare', color:'#2FA98C', dark:'#125E4B', fee:82 }
+};
+const VERTCOST = { it:350, hc:1150 };
+const COUNTRIES = [
+  { name:'India',  mul:1,  floorA:'#F2E8D2', floorB:'#EADFC2', wall:'#B99B6B', accent:'#C96F3B', sky:'rgba(150,205,230,0.6)', rug:'rgba(255,252,244,0.5)', passive:2,   moveCost:2400  },
+  { name:'Dubai',  mul:2.4,  floorA:'#F6E9C6', floorB:'#EFDEAE', wall:'#C0A45C', accent:'#C9A227', sky:'rgba(240,200,140,0.6)', rug:'rgba(255,250,232,0.5)', passive:9,   moveCost:25000 },
+  { name:'USA',    mul:6, floorA:'#EAEEF4', floorB:'#DEE4EC', wall:'#8FA2B8', accent:'#3B6FB5', sky:'rgba(120,170,215,0.6)', rug:'rgba(252,253,255,0.55)', passive:26,  moveCost:Infinity }
+];
+const UPS = {
+  speed:    { name:'Founder hustle',  base:40,  mult:1.7,  max:6, desc:'You move 12% faster' },
+  cap:      { name:'Carry capacity',  base:60,  mult:1.8,  max:5, desc:'+1 resume carried, +1 follower' },
+  staff:    { name:'Staff speed',     base:150, mult:1.95, max:5, desc:'Staff move 18% faster' },
+  staffcap: { name:'Staff capacity',  base:200, mult:1.95, max:4, desc:'Staff carry and lead more' },
+  quality:  { name:'Sourcing quality',base:170, mult:1.95, max:5, desc:'Fewer resumes rejected at screening' },
+  printer:  { name:'Job board plan',  base:60,  mult:1.8,  max:6, desc:'Resumes print faster' },
+  screen:   { name:'AI resume screening', base:80, mult:1.8, max:6, desc:'Screening runs faster' },
+  aiint:    { name:'AI phone screener', base:220, mult:1.9, max:5, desc:'Interviews run 18% faster' },
+  ads:      { name:'Ad campaigns',    base:100, mult:1.85, max:6, desc:'Clients arrive 8% faster' },
+  rep:      { name:'Employer brand',  base:120, mult:2.05, max:4, desc:'Fees +15% per level' },
+  patience: { name:'Client lounge',   base:80,  mult:1.9,  max:4, desc:'Clients wait 20% longer' },
+  vipnet:   { name:'Premium network', base:250, mult:2.0,  max:3, desc:'+3% chance of VIP clients (they pay 5x)' },
+  zone:     { name:'Waiting area',    base:90,  mult:1.8,  max:3, desc:'+2 screened candidate spots' },
+  ready:    { name:'Placement bench', base:110, mult:1.85, max:2, desc:'+2 ready candidate spots' },
+  slots:    { name:'Client desks',    base:400, mult:2.0,  max:1, desc:'One more client can wait' },
+  booth:    { name:'Interview rooms', base:180, mult:1.85, max:3, desc:'+1 interview room' },
+};
+const UPCATS = [
+  ['Founder', ['speed','cap']],
+  ['Team', ['staff','staffcap','quality']],
+  ['Software', ['printer','screen','aiint']],
+  ['Marketing', ['ads','rep','patience','vipnet']],
+  ['Office', ['booth','zone','ready','slots']]
+];
+const STAFF_UNIFORM = '#4A5160';
+const ROLE_TAG = { sourcer:'S', rec:'R', am:'A', fin:'F' };
+const SALARY = { sourcer:34, rec:46, am:58, fin:40 };
+const MONTH = 45;
+const HIRES = {
+  sourcer: { name:'Sourcer',         cost:180, max:4, desc:'Ferries resumes to screening' },
+  rec:     { name:'Recruiter',       cost:120, max:4, desc:'Runs a room and fetches candidates' },
+  am:      { name:'Account manager', cost:400, max:4, desc:'Introduces ready candidates to clients' },
+  fin:     { name:'Finance exec',    cost:320, max:1, desc:'Collects and banks your fees' }
+};
+const L = {
+  printer: { x:72,  y:126, w:164, h:96 },
+  desk:    { x:494, y:126, w:210, h:96 },
+  zone:    { x:486, y:274, w:250, h:150 },
+  booth:   { x:296, y:456, w:448, h:136 },
+  lobby:   { x:236, y:898, w:496, h:152 },
+  door:    { x:20,  y:962, w:88,  h:120 },
+  mgr:     { x:62,  y:452, w:170, h:100 },
+  banner:  { x:74,  y:716, w:102, h:80 },
+  pads:    { sourcer:{x:280,y:250}, rec:{x:370,y:420}, am:{x:330,y:760}, fin:{x:660,y:800} },
+  shred:   { x:20,  y:142, w:64, h:58 },
+  exit:    { x:648, y:32,  w:150, h:66 }
+};
+const boothSlots = [];
+for (let i=0;i<6;i++) boothSlots.push({ x:340+i*66, y:534 });
+const readySpots = [];
+for (let i=0;i<6;i++) readySpots.push({ x:340+i*66, y:668 });
+const zoneSlots = [];
+for (let r=0;r<3;r++) for (let c=0;c<4;c++) zoneSlots.push({ x:522+c*60, y:314+r*46 });
+const clientSlots = [ {x:316,y:992}, {x:428,y:992}, {x:540,y:992}, {x:652,y:992} ];
+
+let state = null;
+function freshOffice() {
+  return { ups:{speed:0,cap:0,staff:0,staffcap:0,quality:0,printer:0,screen:0,aiint:0,ads:0,rep:0,patience:0,vipnet:0,booth:0,zone:0,ready:0,slots:0}, hires:{sourcer:0,rec:0,am:0,fin:0}, verts:['bc'], placed:0, lost:0, rejected:0 };
+}
+function freshState() {
+  return Object.assign({ v:1, cash:START_CASH, earned:0, country:0, tut:0, mute:false, ts:Date.now(), offices:{}, payOn:false, payT:MONTH, months:0 }, freshOffice());
+}
+const OFFICE_KEYS = ['ups','hires','verts','placed','lost','rejected'];
+function snapshotOffice() {
+  const o = {};
+  OFFICE_KEYS.forEach(k => { o[k] = JSON.parse(JSON.stringify(state[k])); });
+  return o;
+}
+function applyOffice(o) {
+  const f = freshOffice();
+  OFFICE_KEYS.forEach(k => { state[k] = (o && o[k] !== undefined) ? JSON.parse(JSON.stringify(o[k])) : f[k]; });
+  state.ups = Object.assign(f.ups, state.ups);
+  state.hires = Object.assign(f.hires, state.hires);
+}
+function ownedOffices() { return Object.keys(state.offices || {}).map(Number).concat([state.country]).filter((v,i,a)=>a.indexOf(v)===i).sort(); }
+function travelTo(idx) {
+  if (idx === state.country) return;
+  state.offices[state.country] = snapshotOffice();
+  state.country = idx;
+  applyOffice(state.offices[idx]);
+  resetFloor(); applyHud(); saveGame();
+  toast('Welcome back to the ' + COUNTRIES[idx].name + ' office');
+}
+
+let player, printerStack, deskQueue, screenT, candidates, clients, bills, parts, floaters;
+let emp, clientT, printT, cashEverPicked, panelLatch, exitLatch, hintIT, hintHC;
+let padProg, rushOn, rushLeft, promoCd, shredA = 0, dt2 = 0.016, payFlash = 0, payLast = 0, gameOver = false;
+let rushBank = 0;  // promo-rush client spawns held back by a full lobby
+let coinFx = [];
+function coinFly(x, y) {
+  for (let i = 0; i < 3; i++) coinFx.push({
+    x0: x + Math.random()*30 - 15, y0: y + Math.random()*20 - 10,
+    t: -i*0.06, dur: 0.5 + Math.random()*0.2,
+  });
+  if (coinFx.length > 60) coinFx.length = 60;
+}
+function resetFloor() {
+  player = { x:320, y:680, dir:{x:0,y:0}, carrying:[], trail:[], moving:false, face:1 };
+  printerStack = []; deskQueue = []; screenT = 0;
+  candidates = []; clients = []; bills = []; parts = []; floaters = [];
+  emp = { sourcers:[], recs:[], ams:[], fins:[] }; syncEmp();
+  const freshRun = state && state.tut === 0 && state.placed === 0;
+  clientT = 3.5; printT = freshRun ? 0 : 1.2; panelLatch = false; exitLatch = false;
+  if (freshRun) for (let i = 0; i < 3; i++) printerStack.push(pickResumeVert());
+  padProg = {}; rushOn = false; rushLeft = 0; promoCd = 0; payFlash = 0; rushBank = 0;
+}
+resetFloor();
+cashEverPicked = false; hintIT = false; hintHC = false;
+
+const mul = () => COUNTRIES[state.country].mul;
+const carryCap = () => 3 + state.ups.cap;
+const followCap = () => 3 + state.ups.cap;
+const playerSpeed = () => 250 * (1 + 0.12*state.ups.speed);
+const printInterval = () => 3.0 * Math.pow(0.845, state.ups.printer);
+const printCap = () => 6 + state.ups.printer;
+const screenTime = () => 3.8 * Math.pow(0.85, state.ups.screen);
+const PFACT = [1.25, 1.02, 0.86];
+const patienceMax = () => 24 * PFACT[state.country] * Math.pow(1.2, state.ups.patience);
+const heat = () => Math.min(1, state.placed/34);
+const chainMul = () => 1;
+const staffSpeed = () => 152 * (1 + 0.18*state.ups.staff);
+const adsFactor = () => Math.max(0.68, Math.pow(0.93, state.ups.ads));
+const vipChance = () => 0.08 + 0.03*state.ups.vipnet;
+const rejectRate = () => Math.max(0.05, 0.18 * Math.pow(0.76, state.ups.quality));
+const sourcerCarry = () => 4 + state.ups.staffcap;
+const amCap = () => 2 + Math.floor(state.ups.staffcap/1.5);
+const boothCap = () => Math.min(6, 3 + state.ups.booth);
+let atBooth = false;
+let UI_SCALE = 1;
+const F = (w, s) => w + ' ' + Math.round(s * UI_SCALE) + 'px Fredoka';
+let isCoarse = false; try { isCoarse = matchMedia('(pointer: coarse)').matches; } catch(e) {}
+let idleT = 0;
+let roomRec = [];  // roomRec[i] === true when a recruiter is present and working in room i
+function popWrap(x, y, pop, fn) {
+  if (pop > 0) {
+    ctx.save(); ctx.translate(x, y); ctx.scale(1 + 0.3*pop, 1 - 0.3*pop); ctx.translate(-x, -y);
+    fn(); ctx.restore();
+  } else fn();
+}
+function moveToward(u, tx, ty, sp, dtv, arr) {
+  const d = dist(u.x, u.y, tx, ty);
+  if (d < (arr || 14)) return true;
+  u.x += (tx-u.x)/d*Math.min(sp*dtv, d); u.y += (ty-u.y)/d*Math.min(sp*dtv, d);
+  return false;
+}
+const recRooms = () => Math.min(boothCap() - 1, state.hires.rec);
+const playerRoom = () => atBooth ? recRooms() : -1;
+const interviewTime = () => 3.2 * Math.pow(0.82, state.ups.aiint);
+const promoCost = () => nice((70 + state.placed * 1.2) * mul());
+const payrollTotal = () => {
+  let s = 0;
+  Object.keys(SALARY).forEach(k => { s += SALARY[k] * (state.hires[k]||0); });
+  return nice(s * mul());
+};
+const monthlyDue = () => payrollTotal();
+const trading = () => state.tut >= TUT.length || state.placed >= 3;
+const START_CASH = 1000;
+const PAY_GATE = () => 1000 * mul();
+const RUIN = () => 10000 * mul();
+const payrollOn = () => !!state.payOn;
+
+const zoneCap = () => Math.min(12, 6 + 2*state.ups.zone);
+const readyCap = () => Math.min(6, 2 + 2*state.ups.ready);
+const clientCap = () => Math.min(4, 3 + state.ups.slots);
+const feeOf = v => VERTS[v].fee * mul() * (1 + 0.15*state.ups.rep) * chainMul() * (rushOn ? 1.5 : 1);
+const nice = n => n < 200 ? Math.round(n/5)*5 : n < 2000 ? Math.round(n/10)*10 : Math.round(n/50)*50;
+const upTotal = () => { let n = 0; for (const k in state.ups) n += state.ups[k]; return n; };
+const upCost = k => nice(UPS[k].base * Math.pow(UPS[k].mult, state.ups[k]) * (1 + 0.004*Math.pow(upTotal(), 1.5)) * mul());
+const hireCost = k => nice(HIRES[k].cost * Math.pow(2.0, state.hires[k]) * mul());
+const vertCost = k => nice(VERTCOST[k] * mul());
+const passiveRate = () => { let r=0; ownedOffices().forEach(i => { if (i !== state.country) r += COUNTRIES[i].passive; }); return r; };
+const fmt = n => { const sg = n < 0 ? '-' : ''; n = Math.abs(n); return sg + (n >= 1000 ? '$' + (n/1000).toFixed(n>=10000?0:1) + 'k' : '$' + Math.floor(n)); };
+const dist = (a,b,x,y) => Math.hypot(a-x, b-y);
+const rc = r => ({ x:r.x+r.w/2, y:r.y+r.h/2 });
+
+let AC = null, ACG = null;
+function ensureAC() {
+  if (AC) return;
+  try {
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+    ACG = AC.createGain(); ACG.gain.value = 0.9; ACG.connect(AC.destination);
+  } catch(err) {}
+}
+function beep(f, d, type, vol, when) {
+  if (state.mute || !AC) return;
+  try {
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = type || 'sine'; o.frequency.value = f * (1 + (Math.random()*0.12 - 0.06));
+    const t0 = AC.currentTime + (when||0);
+    g.gain.setValueAtTime(vol||0.12, t0);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + d);
+    o.connect(g); g.connect(ACG || AC.destination);
+    o.start(t0); o.stop(t0 + d + 0.02);
+  } catch(e) {}
+}
+const sPick = () => beep(760, 0.07, 'triangle', 0.09);
+const sDrop = () => beep(430, 0.08, 'triangle', 0.09);
+const sCoin = () => { beep(880, 0.09, 'square', 0.055); beep(1320, 0.12, 'square', 0.05, 0.06); };
+const sPlace = () => { beep(620, 0.1, 'sine', 0.1); beep(830, 0.12, 'sine', 0.1, 0.08); beep(1040, 0.16, 'sine', 0.1, 0.16); };
+const sBuy = () => { beep(520, 0.1, 'triangle', 0.11); beep(780, 0.14, 'triangle', 0.11, 0.09); };
+const sSad = () => beep(210, 0.25, 'sawtooth', 0.05);
+
+const keys = {};
+addEventListener('keydown', e => {
+  ensureAC();
+  const k = e.key.toLowerCase();
+  keys[k] = true;
+  if (k.startsWith('arrow') || k === ' ') e.preventDefault();
+});
+addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+let joy = null;
+let scaleF = 1;
+function toWorld(e) {
+  const r = cv.getBoundingClientRect();
+  const p = e.touches ? e.touches[0] : e;
+  return { x:(p.clientX - r.left)/scaleF - OFFX, y:(p.clientY - r.top)/scaleF - OFFY };
+}
+function pDown(e) {
+  try { cv.focus(); } catch(err) {}
+  ensureAC();
+  if (AC && AC.state === 'suspended') AC.resume();
+  if (joy) return;
+  joy = { id:e.pointerId, o:toWorld(e), v:{x:0,y:0} };
+  e.preventDefault();
+}
+function pMove(e) {
+  if (!joy || (e.pointerId !== undefined && e.pointerId !== joy.id)) return;
+  const p = toWorld(e);
+  let dx = p.x - joy.o.x, dy = p.y - joy.o.y;
+  const m = Math.hypot(dx,dy);
+  if (m > 64) { dx = dx/m*64; dy = dy/m*64; }
+  joy.v = { x:dx, y:dy };
+  e.preventDefault();
+}
+function pUp(e) {
+  if (joy && e.pointerId !== undefined && e.pointerId !== joy.id) return;
+  joy = null; e.preventDefault();
+}
+cv.addEventListener('pointerdown', pDown);
+addEventListener('pointermove', pMove);
+addEventListener('pointerup', pUp);
+addEventListener('pointercancel', pUp);
+cv.addEventListener('touchstart', e => e.preventDefault(), { passive:false });
+
+let PXR = 1;
+// The office is a fixed 820x1120 world. The canvas fills the whole viewport and the
+// world is centred inside it, with the floor extended to every edge - no letterbox bars.
+const TOPPAD = 150;            // guaranteed world px above the office, keeps stations clear of the HUD
+let OFFX = 0, OFFY = 0;        // world px of extra space left of / above the office
+let VIS_W = VW, VIS_H = VH;    // visible world size
+function resize() {
+  const dpr = Math.min(devicePixelRatio||1, 2);
+  const cw = Math.max(1, innerWidth), ch = Math.max(1, innerHeight);
+  scaleF = Math.min(cw/VW, ch/(VH + TOPPAD));
+  UI_SCALE = Math.max(1, Math.min(2, 0.9/scaleF));
+  PXR = Math.max(0.1, dpr * scaleF);
+  VIS_W = cw/scaleF; VIS_H = ch/scaleF;
+  OFFX = Math.max(0, (VIS_W - VW)/2);
+  OFFY = Math.max(0, Math.min(VIS_H - VH, Math.max(TOPPAD, (VIS_H - VH)*0.45)));
+  cv.width = Math.max(1, Math.round(cw*dpr)); cv.height = Math.max(1, Math.round(ch*dpr));
+  cv.style.width = cw + 'px'; cv.style.height = ch + 'px';
+  wrap.style.width = cw + 'px'; wrap.style.height = ch + 'px';
+  ctx.setTransform(PXR, 0, 0, PXR, OFFX*PXR, OFFY*PXR);
+  vgCache = null; bgKey = '';
+}
+addEventListener('resize', resize);
+
+const store = (typeof window !== 'undefined' && window.storage) ? window.storage :
+  ((typeof localStorage !== 'undefined') ? {
+    get: async k => ({ value: localStorage.getItem(k) }),
+    set: async (k, v) => localStorage.setItem(k, v),
+    delete: async k => localStorage.removeItem(k),
+  } : null);
+async function saveGame() {
+  if (!store || !state) return;
+  state.ts = Date.now();
+  try {
+    const out = JSON.parse(JSON.stringify(state));
+    out.offices = out.offices || {};
+    out.offices[state.country] = snapshotOffice();
+    await store.set('agency_empire_v1', JSON.stringify(out));
+  } catch(e) {}
+}
+async function loadGame() {
+  if (!store) return null;
+  try {
+    const r = await store.get('agency_empire_v1');
+    if (r && r.value) return JSON.parse(r.value);
+  } catch(e) {}
+  return null;
+}
+async function wipeSave() { if (store) { try { await store.delete('agency_empire_v1'); } catch(e) {} } }
+
+const $ = id => document.getElementById(id);
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.style.opacity = 1;
+  clearTimeout(t._h); t._h = setTimeout(() => t.style.opacity = 0, 2600);
+}
+let modalOpen = false;
+function showModal(title, body, btns) {
+  $('mTitle').textContent = title; $('mBody').innerHTML = body;
+  const box = $('mBtns'); box.innerHTML = '';
+  btns.forEach(b => {
+    const el = document.createElement('button');
+    el.className = 'mbtn ' + (b.pri ? 'pri' : 'sec'); el.textContent = b.label;
+    el.onclick = () => { $('modal').classList.remove('show'); modalOpen = false; if (b.fn) b.fn(); };
+    box.appendChild(el);
+  });
+  $('modal').classList.add('show'); modalOpen = true;
+}
+let panelOpen = false, panelOpened = false, panelBtns = [], panelTab = 'team';
+const TILE_COLORS = { sourcer:'#C9922A', rec:'#7E9E5A', am:'#5A7EA8', fin:'#8E6FA8', mkt:'#C0659E',
+  Founder:'#C9553C', Team:'#7E9E5A', Software:'#5A7EA8', Marketing:'#C0659E', Office:'#B08A4E' };
+function setTab(tb) {
+  panelTab = tb;
+  const card = $('panelCard');
+  card.className = 'card t-' + tb;
+  ['tabTeam','tabUps','tabVerts'].forEach(id => {
+    const el = $(id);
+    el.className = 'tab' + (el.dataset && el.dataset.tab === tb ? ' on' : '');
+  });
+}
+function openPanel() {
+  panelOpen = true; panelOpened = true; buildPanel();
+  $('panel').classList.add('show');
+}
+$('panelClose').onclick = () => { panelOpen = false; $('panel').classList.remove('show'); };
+['tabTeam','tabUps','tabVerts'].forEach(id => {
+  const el = $(id);
+  el.onclick = () => setTab(el.dataset ? el.dataset.tab : 'team');
+});
+function tile(txt, col) {
+  return '<div class="tile" style="background:' + col + '">' + txt + '</div>';
+}
+function buildPanel() {
+  const box = $('panelRows'); box.innerHTML = ''; panelBtns = [];
+  setTab(panelTab);
+  const pr = document.createElement('div'); pr.className = 'row tb-team';
+  pr.innerHTML = tile('$', '#B08A4E') +
+    '<div class="info"><div class="nm">Monthly payroll ' + fmt(payrollTotal()) + '</div>' +
+    '<div class="ds">' + (payrollOn() ? 'Due every ' + MONTH + 's' : 'Starts once you have earned ' + fmt(PAY_GATE())) + '</div></div>';
+  box.appendChild(pr);
+
+  Object.keys(HIRES).forEach(k => {
+    const cnt = state.hires[k], maxed = cnt >= HIRES[k].max, cost = hireCost(k);
+    const row = document.createElement('div'); row.className = 'row tb-team';
+    let pips = '<div class="pips">';
+    for (let i=0;i<HIRES[k].max;i++) pips += '<div class="pip' + (i<cnt?' on':'') + '"></div>';
+    pips += '</div>';
+    row.innerHTML = tile(ROLE_TAG[k], TILE_COLORS[k]) + '<div class="info"><div class="nm">' + HIRES[k].name + '</div><div class="ds">' + HIRES[k].desc + '  ·  ' + fmt(nice(SALARY[k]*mul())) + '/mo</div>' + pips + '</div>';
+    const b = document.createElement('button'); b.className = 'buy' + (maxed?' max':'');
+    b.textContent = maxed ? 'Full' : fmt(cost);
+    b.disabled = maxed || state.cash < cost;
+    b.onclick = () => {
+      if (maxed || state.cash < cost) return;
+      state.cash -= cost; state.hires[k]++; syncEmp(); sBuy();
+      toast(HIRES[k].name + ' hired'); buildPanel(); saveGame();
+    };
+    if (!maxed) panelBtns.push({ el:b, cost });
+    row.appendChild(b); box.appendChild(row);
+  });
+
+  UPCATS.forEach(cat => {
+    const hd = document.createElement('div'); hd.className = 'cat tb-ups'; hd.textContent = cat[0];
+    box.appendChild(hd);
+    cat[1].forEach(k => addUpRow(box, k, cat[0]));
+  });
+  let anyVert = false;
+  Object.keys(VERTCOST).forEach(k => {
+    if (state.verts.includes(k)) return;
+    if (k==='hc' && !state.verts.includes('it')) return;
+    anyVert = true;
+    addVertRow(box, k);
+  });
+  if (!anyVert) {
+    const row = document.createElement('div'); row.className = 'row tb-verts';
+    row.innerHTML = tile('OK', '#7E9E5A') + '<div class="info"><div class="nm">All industries unlocked</div><div class="ds">The next country waits at the gold exit arch</div></div>';
+    box.appendChild(row);
+  }
+}
+function addUpRow(box, k, catName) {
+    const u = UPS[k], lvl = state.ups[k], maxed = lvl >= u.max, cost = upCost(k);
+    const row = document.createElement('div'); row.className = 'row tb-ups';
+    let pips = '<div class="pips">';
+    for (let i=0;i<u.max;i++) pips += '<div class="pip' + (i<lvl?' on':'') + '"></div>';
+    pips += '</div>';
+    row.innerHTML = tile(u.name[0], TILE_COLORS[catName] || '#B08A4E') + '<div class="info"><div class="nm">' + u.name + '</div><div class="ds">' + u.desc + '</div>' + pips + '</div>';
+    const b = document.createElement('button'); b.className = 'buy' + (maxed?' max':'');
+    b.textContent = maxed ? 'Max' : fmt(cost);
+    b.disabled = maxed || state.cash < cost;
+    b.onclick = () => { if (state.cash>=cost && !maxed) { state.cash-=cost; state.ups[k]++; sBuy(); buildPanel(); saveGame(); } };
+    if (!maxed) panelBtns.push({ el:b, cost });
+    row.appendChild(b); box.appendChild(row);
+}
+function addVertRow(box, k) {
+    const cost = vertCost(k);
+    const row = document.createElement('div'); row.className = 'row tb-verts';
+    row.innerHTML = tile(VERTS[k].name[0], VERTS[k].color) + '<div class="info"><div class="nm" style="color:' + VERTS[k].dark + '">Unlock ' + VERTS[k].name + '</div><div class="ds">New clients at ' + fmt(VERTS[k].fee * mul()) + ' base fee per placement</div></div>';
+    const b = document.createElement('button'); b.className = 'buy'; b.style.background = VERTS[k].color;
+    b.textContent = fmt(cost); b.disabled = state.cash < cost;
+    b.onclick = () => { if (state.cash>=cost) { state.cash-=cost; state.verts.push(k); sBuy(); toast(VERTS[k].name + ' unlocked!'); buildPanel(); saveGame(); } };
+    panelBtns.push({ el:b, cost });
+    row.appendChild(b); box.appendChild(row);
+}
+function showOffices() {
+  const owned = ownedOffices();
+  let body = '';
+  owned.forEach(i => {
+    const c = COUNTRIES[i];
+    body += '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:7px 0;padding:10px 12px;background:#FFF;border:1px solid var(--line);border-radius:14px;text-align:left">' +
+      '<div><div style="font-weight:600;color:var(--ink)">' + c.name + ' office</div>' +
+      '<div style="font-size:12px;color:var(--ink2)">' + (i === state.country ? 'You are here' : 'Earning ' + fmt(c.passive) + '/min') + '</div></div>' +
+      (i === state.country ? '' : '<button class="mbtn pri" style="flex:none;padding:9px 16px" data-go="' + i + '">Go</button>') +
+      '</div>';
+  });
+  showModal('Your offices', body, [ { label:'Close', pri:true } ]);
+  const mb = $('mBody');
+  (mb.children || []).forEach(row => {
+    (row.children || []).forEach(el => {
+      if (el.dataset && el.dataset.go !== undefined && el.dataset.go !== '') {
+        el.onclick = () => { $('modal').classList.remove('show'); modalOpen = false; travelTo(+el.dataset.go); };
+      }
+    });
+  });
+}
+$('countryChip').style.pointerEvents = 'auto';
+$('countryChip').style.cursor = 'pointer';
+$('countryChip').onclick = () => { if (!modalOpen && ownedOffices().length > 1) showOffices(); };
+$('sndBtn').onclick = () => { state.mute = !state.mute; $('sndBtn').textContent = state.mute ? '\u{1F507}' : '\u{1F50A}'; saveGame(); };
+const helpBtnEl = $('helpBtn');
+if (helpBtnEl) helpBtnEl.onclick = () => {
+  showModal('Agency Empire',
+    'Drag anywhere to walk, or use WASD / arrow keys. Grab resumes at the job board and drop them at screening. Lead screened candidates from the waiting area into the interview rooms and stay with them: you are the fastest interviewer in the building, and a room with nobody in it barely moves. Recruiters each run one room and fetch waiting candidates on their own. Account managers introduce ready candidates to clients, but walking candidates over yourself is faster. Dump unwanted resumes in the shredder, or walk an unwanted candidate to the door to release them. Trigger a Promotion at the pink stand to flood the office with clients for 30 seconds. Once you have earned $1,000 of your own, payroll kicks in: every 45 seconds you owe salaries for your whole team, so hiring is a real commitment. Your balance can go negative \u2014 sink to \u221210k and the office goes under. Raise sourcing quality so fewer resumes get rejected, unlock new industries at the Manager desk, and expand to new countries at the gold arch.',
+    [ { label:'Reset game', fn:async()=>{ await wipeSave(); state = freshState(); resetFloor(); applyHud(); } },
+      { label:'Play', pri:true } ]);
+};
+
+function spendConfirmCountry() {
+  const c = COUNTRIES[state.country], nxt = COUNTRIES[state.country+1];
+  if (!nxt) return;
+  showModal('Move to ' + nxt.name + '?',
+    'Cost ' + fmt(c.moveCost) + '. Fees become x' + nxt.mul + '. The new office starts empty, and your ' + c.name + ' office keeps paying you ' + fmt(c.passive) + '/min forever.',
+    [ { label:'Not yet' },
+      { label:'Move', pri:true, fn:() => {
+          state.cash -= c.moveCost;
+          state.offices[state.country] = snapshotOffice();
+          state.country++;
+          applyOffice(null);
+          state.cash += nice(START_CASH * COUNTRIES[state.country].mul);
+          resetFloor(); applyHud(); sBuy();
+          toast('Welcome to the ' + nxt.name + ' office!');
+          saveGame();
+      } } ]);
+}
+function applyHud() {
+  $('countryChip').childNodes[0].nodeValue = COUNTRIES[state.country].name + ' office';
+  $('sndBtn').textContent = state.mute ? '\u{1F507}' : '\u{1F50A}';
+}
+
+const TUT = [
+  { txt:'Walk to the job board and grab the resumes', done:() => player.carrying.length>0 || deskQueue.length>0 || candidates.length>0 || state.placed>0, tgt:() => { const c2 = rc(L.printer); return { x:c2.x+55, y:c2.y }; } },
+  { txt:'Drop them at the screening desk', done:() => deskQueue.length>0 || candidates.length>0 || state.placed>0, tgt:() => { const c2 = rc(L.desk); return { x:c2.x, y:c2.y+30 }; } },
+  { txt:'Lead a candidate to the interview rooms', done:() => candidates.some(c=>c.st==='booth' || c.done) || state.placed>0, tgt:() => player_followers().some(f=>!f.done) ? rc(L.booth) : rc(L.zone) },
+  { txt:'Stay in the room and interview them yourself', done:() => candidates.some(c=>c.done) || state.placed>0, tgt:() => rc(L.booth) },
+  { txt:'Walk an interviewed candidate to a waiting client', done:() => state.placed > 0, tgt:() => {
+      const c = clients.find(cl => cl.st === 'wait');
+      return player_followers().some(f => f.done) && c ? { x:c.x, y:c.y } : { x:538, y:668 };
+    } },
+  { txt:'Scoop up your fee', done:() => cashEverPicked || state.placed>2, tgt:() => bills.length ? bills[0] : rc(L.lobby) },
+  { txt:'Visit the Manager desk to hire and upgrade', done:() => panelOpened || state.placed>4, tgt:() => rc(L.mgr) }
+];
+function player_followers() { return candidates.filter(c => c.st==='follow' && c.owner==='p'); }
+function am_followers() { return candidates.filter(c => c.st==='follow' && String(c.owner).indexOf('am')===0); }
+function syncEmp() {
+  if (!state || !emp) return;
+  Object.keys(HIRES).forEach(k => { state.hires[k] = Math.max(0, Math.min(HIRES[k].max, state.hires[k]|0)); });
+  const mk = (arr, n, f) => { while (arr.length < n) arr.push(f(arr.length)); if (arr.length > n) arr.length = n; arr.forEach((u,i)=>u.o=i); };
+  mk(emp.sourcers, state.hires.sourcer, i => ({ x:L.pads.sourcer.x, y:L.pads.sourcer.y, carrying:[], st:'idle', o:i }));
+  state.hires.rec = Math.min(state.hires.rec, boothCap() - 1);
+  mk(emp.recs,     state.hires.rec,     i => ({ x:L.pads.rec.x, y:L.pads.rec.y, st:'idle', o:i, room:i, target:null }));
+  emp.recs.forEach((r, i) => { r.room = i; });
+  mk(emp.ams,      state.hires.am,      i => ({ x:L.pads.am.x, y:L.pads.am.y, trail:[], st:'idle', o:i }));
+  mk(emp.fins,     state.hires.fin,     i => ({ x:L.lobby.x+L.lobby.w+38, y:L.lobby.y+42, carry:0, n:0, wait:0, st:'idle', o:i }));
+}
+const ALLEMP = () => [].concat(emp.sourcers, emp.recs, emp.ams, emp.fins);
+const EMPKEY = { sourcers:'sourcer', recs:'rec', ams:'am', fins:'fin' };
+function freeZoneSlot() { const t = candidates.filter(c=>c.st==='wait').map(c=>c.slot); for (let i=0;i<zoneCap();i++) if (!t.includes(i)) return i; return -1; }
+function freeBoothSlot() { const t = candidates.filter(c=>c.st==='booth').map(c=>c.bslot); for (let i=0;i<boothCap();i++) if (!t.includes(i)) return i; return -1; }
+function freeReadySpot() { const t = candidates.filter(c=>c.st==='ready').map(c=>c.rspot); for (let i=0;i<readyCap();i++) if (!t.includes(i)) return i; return -1; }
+function rehome(c) {
+  c.owner = null; c.target = null; c.amIdx = undefined;
+  if (c.done) {
+    const rs = freeReadySpot(); if (rs>=0) { c.st='ready'; c.rspot=rs; c.readyT=0; return; }
+  } else {
+    const bs = freeBoothSlot(); if (bs>=0) { c.st='booth'; c.bslot=bs; c.iT=0; return; }
+    const sl = freeZoneSlot(); if (sl>=0) { c.st='wait'; c.slot=sl; return; }
+  }
+  c.dead = true;
+}
+
+function pickVert() {
+  const v = state.verts;
+  return v[Math.floor(Math.random()*v.length)];
+}
+function weightedPick(w) {
+  let tot = 0; for (const k in w) tot += w[k];
+  let r = Math.random()*tot;
+  for (const k in w) { r -= w[k]; if (r <= 0) return k; }
+  return state.verts[0];
+}
+function pipelineSupply() {
+  const s = {}; state.verts.forEach(v => s[v] = 0);
+  candidates.forEach(c => { if (!c.dead && c.st !== 'expire' && s[c.vert] != null) s[c.vert] += 1; });
+  deskQueue.forEach(v => { if (s[v] != null) s[v] += 0.8; });
+  printerStack.forEach(v => { if (s[v] != null) s[v] += 0.6; });
+  return s;
+}
+function openDemand() {
+  const d = {}; state.verts.forEach(v => d[v] = 0);
+  clients.forEach(cl => { if (cl.st !== 'leave' && d[cl.vert] != null) d[cl.vert] += cl.need; });
+  return d;
+}
+function bestDemandVert(cur) {
+  const readySup = {}; state.verts.forEach(v => readySup[v] = 0);
+  candidates.forEach(c => {
+    if (c.dead || readySup[c.vert] == null) return;
+    if (c.st === 'ready' || c.st === 'fetched' || (c.st === 'follow' && c.done)) readySup[c.vert] += 1;
+  });
+  let best = null, bestGap = 0;
+  state.verts.forEach(v => {
+    let dem = 0;
+    clients.forEach(cl => { if (cl.vert === v && (cl.st === 'wait' || cl.st === 'in')) dem += cl.need; });
+    const gap = dem - readySup[v];
+    if (gap > bestGap) { bestGap = gap; best = v; }
+  });
+  return best || cur;
+}
+function pickResumeVert() {
+  const sup = pipelineSupply(), dem = openDemand(), w = {};
+  state.verts.forEach(v => { w[v] = Math.max(0.12, 0.6 + dem[v]*1.8 - sup[v]*1.1); });
+  return weightedPick(w);
+}
+function pickClientVert() {
+  const w = {};
+  state.verts.forEach(v => w[v] = 0.5);
+  candidates.forEach(c => {
+    if (c.dead || w[c.vert] == null) return;
+    if (c.st === 'ready') w[c.vert] += 4.5;
+    else if (c.st === 'booth') w[c.vert] += 2.2;
+    else w[c.vert] += 1.0;
+  });
+  deskQueue.forEach(v => { if (w[v] != null) w[v] += 0.5; });
+  clients.forEach(cl => { if (cl.st !== 'leave' && w[cl.vert] != null) w[cl.vert] = Math.max(0.2, w[cl.vert] - cl.need*1.2); });
+  return weightedPick(w);
+}
+function spawnClient() {
+  const used = clients.map(c=>c.slot);
+  let slot = -1;
+  for (let i=0;i<clientCap();i++) if (!used.includes(i)) { slot = i; break; }
+  if (slot < 0) { if (rushOn) rushBank = Math.min(2, rushBank + 1); return; }
+  const hp = heat(), r = Math.random();
+  const p1 = 0.5 - 0.3*hp, p2 = 0.33 + 0.08*hp;
+  let need = r < p1 ? 1 : (r < p1+p2 ? 2 : 3);
+  if (state.placed === 0) need = 1; // the first fee must land fast
+  const vip = state.placed > 6 && Math.random() < vipChance();
+  if (vip) need = Math.random() < 0.5 ? 2 : 3;
+  const pat = patienceMax() * (vip ? 0.6 : 1);
+  clients.push({ x:L.door.x+45, y:L.door.y+60, vert:pickClientVert(), need, slot, vip,
+    patience:pat, maxP:pat, st:'in', bob:Math.random()*6 });
+}
+function onPlaced() {
+  state.placed++;
+  if (state.placed === 1) {
+    floatTxt(VW/2, 380, 'First placement!', '#7A3A66');
+    confetti(VW/2 - 120, 360, '#B15B3E'); confetti(VW/2, 340, '#4A90D9'); confetti(VW/2 + 120, 360, '#2FA98C');
+    sPlace();
+  } else if (state.placed === 10 || state.placed === 25 || state.placed === 50) {
+    floatTxt(VW/2, 380, state.placed + ' placements!', '#7A3A66');
+    for (let i = 0; i < 4; i++) confetti(160 + i*170, 340, '#FFC93C');
+  }
+}
+function spawnBills(total, cx, cy) {
+  if (bills.length > 60) { bills[0].val += total; return; }
+  const n = Math.max(2, Math.min(7, Math.round(total/(9*mul()))));
+  for (let i=0;i<n;i++) {
+    const a = Math.random()*Math.PI*2, d = 14+Math.random()*52;
+    bills.push({ x:cx+Math.cos(a)*d, y:cy+Math.sin(a)*d, val:total/n, t:0, fly:null });
+  }
+}
+function confetti(x, y, col) {
+  for (let i=0;i<16;i++) {
+    const a = Math.random()*Math.PI*2, sp = 60+Math.random()*160;
+    parts.push({ x, y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp-90, life:0.9+Math.random()*0.5,
+      col:[col,'#FFD75E','#FFFFFF','#FFC93C'][i%4], sz:4+Math.random()*4 });
+  }
+}
+function floatTxt(x, y, txt, col) { floaters.push({ x, y, txt, col:col||'#3E7A34', life:1.1 }); }
+
+const cool = {};
+function every(key, gap) {
+  const t = performance.now();
+  if (!cool[key] || t - cool[key] > gap*1000) { cool[key] = t; return true; }
+  return false;
+}
+
+function update(dt) {
+  dt2 = dt;
+  if (payFlash > 0) payFlash -= dt;
+  if (modalOpen || gameOver) return;
+  roomRec.length = 0;
+  emp.recs.forEach(r => { if (r.st === 'work') roomRec[r.room] = true; });
+  let mx = 0, my = 0;
+  if (keys['w']||keys['arrowup']) my -= 1;
+  if (keys['s']||keys['arrowdown']) my += 1;
+  if (keys['a']||keys['arrowleft']) mx -= 1;
+  if (keys['d']||keys['arrowright']) mx += 1;
+  if (joy && (Math.abs(joy.v.x)>8 || Math.abs(joy.v.y)>8)) { mx = joy.v.x/64; my = joy.v.y/64; }
+  const mm = Math.hypot(mx,my);
+  player.moving = mm > 0.05 && !panelOpen && !modalOpen;
+  if (player.moving || joy) idleT = 0; else idleT += dt;
+  if (player.pop) player.pop = Math.max(0, player.pop - dt*5);
+  ALLEMP().forEach(u => { if (u.pop) u.pop = Math.max(0, u.pop - dt*5); });
+  if (parts.length > 300) parts.length = 300;
+  if (player.moving) {
+    if (mm > 1) { mx/=mm; my/=mm; }
+    player.x += mx*playerSpeed()*dt; player.y += my*playerSpeed()*dt;
+    player.x = Math.max(-OFFX+28, Math.min(-OFFX+VIS_W-28, player.x));
+    player.y = Math.max(100, Math.min(-OFFY+VIS_H-36, player.y));
+    if (Math.abs(mx) > 0.1) player.face = mx > 0 ? 1 : -1;
+    const tr = player.trail;
+    if (!tr.length || dist(player.x,player.y,tr[0].x,tr[0].y) > 3) {
+      tr.unshift({x:player.x, y:player.y});
+      if (tr.length > 260) tr.pop();
+    }
+  }
+
+  printT -= dt;
+  if (printT <= 0 && printerStack.length < printCap()) {
+    printerStack.push(pickResumeVert()); printT = printInterval();
+  }
+
+  const pc = rc(L.printer);
+  if (dist(player.x,player.y,pc.x+55,pc.y) < 95 && player.carrying.length < carryCap() && printerStack.length && every('pk',0.12)) {
+    player.carrying.push(printerStack.pop()); sPick();
+  }
+  const dc = rc(L.desk);
+  if (dist(player.x,player.y,dc.x,dc.y+30) < 100 && player.carrying.length && deskQueue.length < 8 && every('dp',0.1)) {
+    deskQueue.push(player.carrying.pop()); sDrop();
+  }
+  const shc = rc(L.shred);
+  if (dist(player.x,player.y,shc.x,shc.y) < 72 && dist(player.x,player.y,pc.x+55,pc.y) >= 95 && player.carrying.length && every('shred',0.12)) {
+    player.carrying.pop();
+    beep(150, 0.1, 'sawtooth', 0.06); beep(110, 0.12, 'sawtooth', 0.05, 0.05);
+    for (let i=0;i<7;i++) {
+      const a = Math.random()*Math.PI*2, sp = 40+Math.random()*90;
+      parts.push({ x:shc.x, y:shc.y-14, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp-70, life:0.5+Math.random()*0.3, col:['#FFFFFF','#D8D0BC','#B8B0A0'][i%3], sz:3+Math.random()*3 });
+    }
+  }
+  const atDesk = dist(player.x,player.y,dc.x,dc.y+30) < 100;
+  const screenRate = Math.min(2.35, 0.65 + 0.28*Math.min(4, state.hires.sourcer) + (atDesk ? 0.35 : 0) + 0.08*state.ups.staff);
+  if (deskQueue.length && candidates.filter(c=>c.st==='wait').length < zoneCap()) {
+    screenT += dt * screenRate;
+    if (screenT >= screenTime()) {
+      screenT = 0;
+      const v = deskQueue.shift();
+      if (Math.random() < rejectRate()) {
+        state.rejected = (state.rejected||0) + 1;
+        if (every('rejmsg', 4)) floatTxt(dc.x+40, dc.y+18, 'Not a fit', '#B03A2E');
+        beep(240, 0.07, 'square', 0.045);
+        for (let i=0;i<5;i++) {
+          const a = Math.random()*Math.PI*2, sp = 30+Math.random()*70;
+          parts.push({ x:dc.x+40, y:dc.y+26, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp-60, life:0.45+Math.random()*0.25, col:['#FFFFFF','#E0B4AC'][i%2], sz:3+Math.random()*2 });
+        }
+      } else {
+        const sl = freeZoneSlot();
+        if (sl >= 0) candidates.push({ x:dc.x, y:dc.y+40, vert:v, st:'wait', slot:sl, owner:null, idx:0, bob:Math.random()*6 });
+      }
+    }
+  } else if (!deskQueue.length) screenT = 0;
+
+  const zc = rc(L.zone), bc2 = rc(L.booth), rdc = { x:538, y:668 };
+  const pf = () => player_followers();
+  atBooth = dist(player.x,player.y,bc2.x,bc2.y) < 120;
+  if (dist(player.x,player.y,zc.x,zc.y) < 132 && pf().length < followCap() && every('att',0.16)) {
+    const w = candidates.find(c => c.st === 'wait' && !c.claim);
+    if (w) { w.st='follow'; w.owner='p'; w.waitT=0; player.pop = 1; sPick(); }
+  }
+  if (atBooth && every('bdrop', 0.18)) {
+    const f = pf().filter(c => !c.done).pop();
+    if (f) {
+      const taken = candidates.filter(c => c.st==='booth').map(c => c.bslot);
+      let bs = -1;
+      for (let i = 0; i < boothCap(); i++) if (!taken.includes(i)) { bs = i; break; }
+      if (bs >= 0) { f.st='booth'; f.owner=null; f.bslot=bs; f.iT=0; sDrop(); }
+    }
+  }
+  if (dist(player.x,player.y,rdc.x,rdc.y) < 92 && pf().length < followCap() && every('attr',0.16)) {
+    const r = candidates.find(c=>c.st==='ready');
+    if (r) { r.st='follow'; r.owner='p'; sPick(); }
+  }
+  pf().forEach((f,i) => { f.idx = i; });
+  if (pf().length && every('intro', 0.2)) {
+    for (const cl of clients) {
+      if (cl.st !== 'wait' || cl.need <= 0) continue;
+      if (dist(player.x, player.y, cl.x, cl.y) > 96) continue;
+      const inFlight = candidates.filter(c => (c.st==='escort'||c.st==='fetched'||c.st==='selfgo') && c.target===cl).length;
+      if (cl.need - inFlight <= 0) continue;
+      let f = pf().find(c => c.done && c.vert === cl.vert), off = false;
+      if (!f && cl.patience < cl.maxP*0.55) { f = pf().find(c => c.done); off = true; }
+      if (!f) continue;
+      f.dead = true; cl.need--;
+      cl.feeAcc = (cl.feeAcc || 0) + feeOf(cl.vert) * (off ? 0.55 : 1);
+      confetti(cl.x, cl.y-44, VERTS[f.vert].color);
+      beep(620, 0.07, 'sine', 0.07); beep(880, 0.09, 'sine', 0.07, 0.06);
+      if (cl.need <= 0) {
+        cl.st = 'leave'; cl.amClaim = undefined;
+        const fee = cl.feeAcc * (cl.vip ? 5 : 1);
+        spawnBills(fee, cl.x, cl.y + 26);
+        floatTxt(cl.x, cl.y-70, '+' + fmt(fee), '#2E7D32'); sPlace();
+        onPlaced();
+        if (cl.vip) { confetti(cl.x, cl.y-40, '#C9A227'); floatTxt(cl.x, cl.y-96, 'VIP placed!', '#A87F14'); }
+      }
+      break;
+    }
+  }
+  const drc = { x:L.door.x+L.door.w/2, y:L.door.y+L.door.h/2 };
+  if (dist(player.x,player.y,drc.x,drc.y) < 96 && pf().length && every('rel',0.25)) {
+    const f = pf()[pf().length-1];
+    f.dead = true;
+    beep(320, 0.08, 'triangle', 0.06);
+  }
+
+  candidates.forEach(c => {
+    if (c.st === 'fetched') {
+      // waiting for the account manager to arrive
+    } else if (c.st === 'wait') {
+      const s = zoneSlots[c.slot];
+      c.x += (s.x-c.x)*Math.min(1, dt*6); c.y += (s.y-c.y)*Math.min(1, dt*6);
+      c.waitT = (c.waitT||0) + dt;
+      if (c.claim && !emp.recs[+String(c.claim).slice(3)]) c.claim = undefined; // claimer was let go
+      if (!c.claim && c.waitT > 9 && every('drift', 1.1)) {
+        const taken = candidates.filter(k => k.st==='booth').map(k => k.bslot);
+        for (let i = 0; i < boothCap(); i++) {
+          if (taken.includes(i)) continue;
+          c.st='booth'; c.bslot=i; c.iT=0; c.waitT=0;
+          break;
+        }
+      }
+    } else if (c.st === 'booth') {
+      const s = boothSlots[c.bslot];
+      c.x += (s.x-c.x)*Math.min(1, dt*7); c.y += (s.y-c.y)*Math.min(1, dt*7);
+      const isPlayerRoom = c.bslot === playerRoom();
+      const staffed = !!roomRec[c.bslot];
+      c.iT = (c.iT||0) + dt * (isPlayerRoom ? 2.2 : staffed ? 1 : 0.2);
+      if (c.iT >= interviewTime()) {
+        const rs = freeReadySpot();
+        if (rs < 0) { c.iT = interviewTime(); }
+        else {
+          const nv = bestDemandVert(c.vert);
+          if (nv !== c.vert) {
+            c.vert = nv;
+            confetti(c.x, c.y-24, VERTS[nv].color);
+            if (every('matchmsg', 3)) floatTxt(c.x, c.y-48, 'Matched to ' + VERTS[nv].name, VERTS[nv].dark);
+          }
+          c.st='ready'; c.rspot=rs; c.readyT=0; c.done=true;
+          beep(700, 0.08, 'sine', 0.07); beep(940, 0.1, 'sine', 0.07, 0.07);
+        }
+      }
+    } else if (c.st === 'ready') {
+      const s = readySpots[c.rspot];
+      c.x += (s.x-c.x)*Math.min(1, dt*6); c.y += (s.y-c.y)*Math.min(1, dt*6);
+      const buyer = clients.find(cl => cl.vert===c.vert && cl.st==='wait' && cl.need > 0);
+      if (buyer) {
+        c.readyT = 0;
+        c.waitBuyer = (c.waitBuyer||0) + dt;
+        const inFlight = candidates.filter(k => (k.st==='escort'||k.st==='fetched'||k.st==='selfgo') && k.target===buyer).length;
+        if (c.waitBuyer > 5 && buyer.need - inFlight > 0) { c.st='selfgo'; c.target=buyer; c.offspec=false; }
+      } else {
+        c.waitBuyer = 0;
+        const desperate = clients.find(cl => cl.st==='wait' && cl.need > 0 && cl.patience < cl.maxP*0.45 &&
+          candidates.filter(k => (k.st==='escort'||k.st==='fetched'||k.st==='selfgo') && k.target===cl).length < cl.need);
+        if (desperate && (c.readyT||0) > 3) { c.st='selfgo'; c.target=desperate; c.offspec=true; }
+        c.readyT = (c.readyT||0) + dt;
+        if (c.readyT > 2.5 && every('retag'+c.rspot, 1.2)) {
+          const nv = bestDemandVert(c.vert);
+          if (nv !== c.vert) { c.vert = nv; c.readyT = 0; confetti(c.x, c.y-24, VERTS[nv].color); }
+        }
+        if (c.readyT > 26) { c.st = 'expire'; floatTxt(c.x, c.y-42, 'Took another offer', '#8A7E6A'); }
+      }
+    } else if (c.st === 'escort') {
+      const a = emp.ams[c.amIdx];
+      if (!a) { rehome(c); return; }
+      const tx = a.x + ((c.eIdx||0) - 1) * 26, ty = a.y + 32 + (c.eIdx||0)*4;
+      const d = dist(c.x, c.y, tx, ty);
+      if (d > 4) { const sp = Math.min(d*8, 330); c.x += (tx-c.x)/d*sp*dt; c.y += (ty-c.y)/d*sp*dt; }
+    } else if (c.st === 'follow') {
+      if (c.noDrop > 0) c.noDrop -= dt;
+      const isRec = typeof c.owner === 'string' && c.owner.indexOf('rec') === 0;
+      const owner = c.owner==='p' ? player : (isRec ? emp.recs[+c.owner.slice(3)] : null);
+      if (!owner) { rehome(c); return; }
+      const tp = c.owner==='p'
+        ? (() => { const tr = owner.trail; const ti = Math.min((c.idx+1)*13, tr.length-1); return ti >= 0 && tr.length ? tr[ti] : { x:owner.x, y:owner.y }; })()
+        : { x:owner.x, y:owner.y + 30 };
+      const d = dist(c.x,c.y,tp.x,tp.y);
+      if (d > 4) {
+        const sp = Math.min(d*8, 320);
+        c.x += (tp.x-c.x)/d*sp*dt; c.y += (tp.y-c.y)/d*sp*dt;
+      }
+    } else if (c.st === 'selfgo') {
+      const t2 = c.target;
+      if (!t2 || t2.dead || t2.st !== 'wait' || t2.need <= 0) { rehome(c); return; }
+      const d = dist(c.x, c.y, t2.x, t2.y - 46);
+      if (d < 16) {
+        c.dead = true; t2.need--;
+        t2.feeAcc = (t2.feeAcc || 0) + feeOf(t2.vert) * (c.offspec ? 0.55 : 1);
+        confetti(t2.x, t2.y-44, VERTS[c.vert].color);
+        if (t2.need <= 0) {
+          t2.st = 'leave'; t2.amClaim = undefined;
+          const fee = t2.feeAcc * (t2.vip ? 5 : 1);
+          spawnBills(fee, t2.x, t2.y + 26);
+          floatTxt(t2.x, t2.y-70, '+' + fmt(fee), '#2E7D32'); sPlace();
+          onPlaced();
+          if (t2.vip) { confetti(t2.x, t2.y-40, '#C9A227'); floatTxt(t2.x, t2.y-96, 'VIP placed!', '#A87F14'); }
+        }
+      } else { c.x += (t2.x-c.x)/d*120*dt; c.y += (t2.y-46-c.y)/d*120*dt; }
+    } else if (c.st === 'expire') {
+      const tx = L.door.x+45, ty = L.door.y+60;
+      const d = dist(c.x,c.y,tx,ty);
+      if (d < 12) c.dead = true;
+      else { c.x += (tx-c.x)/d*180*dt; c.y += (ty-c.y)/d*180*dt; }
+    }
+  });
+  candidates = candidates.filter(c => !c.dead);
+
+  if (promoCd > 0) promoCd -= dt;
+  if (rushOn) {
+    rushLeft -= dt;
+    if (rushLeft <= 0) { rushOn = false; promoCd = 45; }
+  }
+  const bnc = { x:L.banner.x+L.banner.w/2, y:L.banner.y+L.banner.h/2 };
+  if (!rushOn && promoCd <= 0 && trading() &&
+      dist(player.x,player.y,bnc.x,bnc.y) < 74 && state.cash >= promoCost()) {
+    padProg.promo = (padProg.promo||0) + dt;
+    if (padProg.promo >= 0.8) {
+      padProg.promo = 0;
+      state.cash -= promoCost();
+      rushOn = true; rushLeft = 30; sBuy();
+      confetti(bnc.x, bnc.y-24, '#C065A8');
+    }
+  } else padProg.promo = Math.max(0, (padProg.promo||0) - dt*2);
+  clientT -= dt;
+  if (clientT <= 0) {
+    spawnClient();
+    clientT = (rushOn ? 0.42 : 1) * (10.5 - 4.0*heat()) * adsFactor() + Math.random()*1.8;
+  }
+  if (rushBank > 0 && clients.length < clientCap() && every('rushbank', 0.8)) { rushBank--; spawnClient(); }
+  clients.forEach(cl => {
+    if (cl.st === 'in') {
+      const s = clientSlots[cl.slot];
+      const d = dist(cl.x,cl.y,s.x,s.y);
+      if (d < 4) { cl.st = 'wait'; cl.total = cl.need; }
+      else { cl.x += (s.x-cl.x)/d*135*dt; cl.y += (s.y-cl.y)/d*135*dt; }
+    } else if (cl.st === 'wait') {
+      cl.patience -= dt;
+      if (cl.patience <= 0) {
+        cl.st = 'leave'; sSad();
+        floatTxt(cl.x, cl.y-70, 'Client left', '#B03A2E');
+        state.lost++;
+        cl.amClaim = undefined;
+        candidates.forEach(c => { if ((c.st==='escort' || c.st==='fetched' || c.st==='selfgo') && c.target===cl) rehome(c); });
+      }
+    } else if (cl.st === 'leave') {
+      const tx = L.door.x+45, ty = L.door.y+60;
+      const d = dist(cl.x,cl.y,tx,ty);
+      if (d < 8) cl.dead = true;
+      else { cl.x += (tx-cl.x)/d*150*dt; cl.y += (ty-cl.y)/d*150*dt; }
+    }
+  });
+  clients = clients.filter(c => !c.dead);
+
+  bills.forEach(b => {
+    b.t += dt;
+    if (!b.fly) {
+
+      if (dist(player.x,player.y,b.x,b.y) < 95) b.fly = 'p';
+    } else {
+      const isP = b.fly === 'p';
+      const fu = isP ? null : emp.fins[b.fly.f];
+      if (!isP && !fu) { b.fly = null; return; }
+      const tx = isP ? player.x : fu.x, ty = isP ? player.y : fu.y;
+      const d = dist(b.x,b.y,tx,ty);
+      if (d < 22) {
+        b.dead = true;
+        if (isP) {
+          state.cash += b.val; state.earned = (state.earned||0) + b.val; cashEverPicked = true; player.pop = 1; sCoin();
+          coinFly(tx, ty);
+          floatTxt(tx, ty-34, '+' + fmt(b.val), '#2E7D32');
+        } else { fu.carry += b.val; fu.n++; }
+      } else { b.x += (tx-b.x)/d*680*dt; b.y += (ty-b.y)/d*680*dt; }
+    }
+  });
+  bills = bills.filter(b => !b.dead);
+
+  emp.sourcers.forEach(s => {
+    const ox = (s.o - (emp.sourcers.length-1)/2) * 26;
+    if (s.st === 'idle') { if (printerStack.length) s.st = 'toP'; }
+    else if (s.st === 'toP') {
+      const tx = pc.x+55+ox, ty = pc.y+34;
+      const d = dist(s.x,s.y,tx,ty);
+      if (d < 14) {
+        while (s.carrying.length < sourcerCarry() && printerStack.length) s.carrying.push(printerStack.pop());
+        s.st = s.carrying.length ? 'toD' : 'idle';
+      } else { const sv = staffSpeed(); s.x += (tx-s.x)/d*sv*dt; s.y += (ty-s.y)/d*sv*dt; }
+    } else if (s.st === 'toD') {
+      const tx = dc.x-30+ox, ty = dc.y+40;
+      const d = dist(s.x,s.y,tx,ty);
+      if (d < 14) {
+        if (deskQueue.length < 8) { deskQueue.push(s.carrying.pop()); if (!s.carrying.length) s.st = 'idle'; }
+      } else { const sv = staffSpeed(); s.x += (tx-s.x)/d*sv*dt; s.y += (ty-s.y)/d*sv*dt; }
+    }
+  });
+  emp.recs.forEach(r => {
+    const slot = boothSlots[r.room];
+    if (!slot) return;
+    const px2 = slot.x + 30, py2 = L.booth.y + 40;
+    const roomBusy = candidates.some(c => c.st === 'booth' && c.bslot === r.room);
+    if (r.st === 'idle') r.st = 'toRoom';
+    if (r.st === 'toRoom') {
+      r.mv = true;
+      if (moveToward(r, px2, py2, staffSpeed(), dt, 6)) { r.st = 'work'; r.mv = false; }
+    } else if (r.st === 'work') {
+      r.mv = false;
+      if (!roomBusy && every('recfetch' + r.o, 0.6)) {
+        const w = candidates.find(c => c.st === 'wait' && !c.claim);
+        if (w) { w.claim = 'rec' + r.o; r.target = w; r.st = 'fetch'; }
+      }
+    } else if (r.st === 'fetch') {
+      r.mv = true;
+      const c = r.target;
+      if (!c || c.dead || c.st !== 'wait' || c.claim !== 'rec' + r.o) {
+        if (c && c.claim === 'rec' + r.o) c.claim = undefined;
+        r.target = null; r.st = 'toRoom';
+      } else if (moveToward(r, c.x, c.y, staffSpeed(), dt, 16)) {
+        c.st = 'follow'; c.owner = 'rec' + r.o; c.claim = undefined; c.waitT = 0; r.pop = 1; sPick();
+        r.st = 'lead';
+      }
+    } else if (r.st === 'lead') {
+      r.mv = true;
+      const c = r.target;
+      if (!c || c.dead || c.owner !== 'rec' + r.o) { r.target = null; r.st = 'toRoom'; }
+      else if (moveToward(r, px2, py2, staffSpeed(), dt, 10)) {
+        r.target = null;
+        if (!candidates.some(k => k.st === 'booth' && k.bslot === r.room)) {
+          c.st = 'booth'; c.bslot = r.room; c.iT = 0; c.owner = null; r.pop = 1; sDrop();
+        } else rehome(c);
+        r.st = 'work';
+      }
+    }
+  });
+  emp.ams.forEach(a => {
+    const post = { x: L.lobby.x + 46 + a.o*58, y: L.lobby.y - 34 };
+    a.mv = false;
+    const moveA = (tx, ty, arrive) => {
+      const d = dist(a.x, a.y, tx, ty);
+      if (d < 14) arrive();
+      else { const av = staffSpeed(); a.x += (tx-a.x)/d*av*dt; a.y += (ty-a.y)/d*av*dt; a.mv = true; }
+    };
+    if (a.st === 'idle') {
+      moveA(post.x, post.y, () => {});
+      if (every('amscan' + a.o, 0.35)) {
+        for (const cl of clients) {
+          if (cl.st !== 'wait' || cl.need <= 0) continue;
+          if (cl.amClaim !== undefined && cl.amClaim !== a.o && emp.ams[cl.amClaim]) continue;
+          const inFlight = candidates.filter(c => (c.st==='escort' || c.st==='fetched' || c.st==='selfgo') && c.target === cl).length;
+          if (cl.need - inFlight <= 0) continue;
+          let cand = candidates.find(c => c.st === 'ready' && c.vert === cl.vert);
+          let off = false;
+          if (!cand && cl.patience < cl.maxP*0.55) { cand = candidates.find(c => c.st === 'ready'); off = true; }
+          if (cand) {
+            cl.amClaim = a.o;
+            const want = Math.min(cl.need - inFlight, amCap());
+            const picked = [];
+            candidates.forEach(c2 => {
+              if (picked.length >= want || c2.st !== 'ready') return;
+              if (c2.vert === cl.vert) picked.push(c2);
+            });
+            if (picked.length < want && cl.patience < cl.maxP*0.55)
+              candidates.forEach(c2 => {
+                if (picked.length >= want || c2.st !== 'ready' || picked.includes(c2)) return;
+                c2.offspec = true; picked.push(c2);
+              });
+            picked.forEach((c2, i) => { c2.st = 'fetched'; c2.target = cl; c2.amIdx = a.o; c2.eIdx = i; if (c2 !== cand) c2.offspec = c2.offspec || false; });
+            cand.offspec = off;
+            a.st = 'fetch'; a.batch = picked;
+            break;
+          }
+        }
+      }
+    } else if (a.st === 'fetch') {
+      const pending = (a.batch || []).filter(c => c && !c.dead && c.st === 'fetched');
+      if (!pending.length) {
+        const esc = (a.batch || []).filter(c => c && !c.dead && c.st === 'escort');
+        a.st = esc.length ? 'deliver' : 'idle';
+        if (!esc.length) a.batch = null;
+      } else {
+        const c = pending[0];
+        moveA(c.x, c.y, () => { c.st = 'escort'; sPick(); });
+      }
+    } else if (a.st === 'deliver') {
+      const crew = (a.batch || []).filter(c => c && !c.dead && c.st === 'escort');
+      crew.forEach((c2, i) => { c2.eIdx = i; });
+      const c = crew[0];
+      const t = c && c.target;
+      if (!c || !t || t.dead || t.st !== 'wait') {
+        crew.forEach(c2 => rehome(c2));
+        a.st = 'idle'; a.batch = null;
+      } else moveA(t.x, t.y - 58, () => {
+        c.dead = true; t.need--;
+        t.feeAcc = (t.feeAcc || 0) + feeOf(t.vert) * (c.offspec ? 0.55 : 1);
+        confetti(t.x, t.y - 44, VERTS[c.vert].color);
+        beep(560, 0.07, 'sine', 0.06);
+        if (t.need <= 0) {
+          t.st = 'leave'; t.amClaim = undefined;
+          const fee = t.feeAcc * (t.vip ? 5 : 1);
+          spawnBills(fee, t.x, t.y + 26);
+          floatTxt(t.x, t.y-70, '+' + fmt(fee), '#2E7D32'); sPlace();
+          onPlaced();
+          if (t.vip) { confetti(t.x, t.y-40, '#C9A227'); floatTxt(t.x, t.y-96, 'VIP placed!', '#A87F14'); }
+        }
+        const left = (a.batch || []).filter(c2 => c2 && !c2.dead && c2.st === 'escort');
+        if (!left.length) { a.st = 'idle'; a.batch = null; }
+      });
+    }
+  });
+  emp.fins.forEach(f => {
+    const post = { x:L.lobby.x+L.lobby.w+38, y:L.lobby.y+42 };
+    const moveF = (tx,ty,arrive) => {
+      const d = dist(f.x,f.y,tx,ty);
+      if (d < 16) arrive();
+      else { const fv = staffSpeed()*0.92; f.x += (tx-f.x)/d*fv*dt; f.y += (ty-f.y)/d*fv*dt; f.mv = true; }
+    };
+    f.mv = false;
+    const freeBill = () => bills.find(b => !b.fly && b.t > 0.4);
+    if (f.st === 'idle') {
+      moveF(post.x, post.y, ()=>{});
+      if (f.n < 5 && freeBill()) f.st = 'toB';
+      else if (f.n > 0) { f.wait += dt; if (f.wait > 0.8) { f.wait = 0; f.st = 'toS'; } }
+    } else if (f.st === 'toB') {
+      const b = freeBill();
+      if (!b) f.st = f.n ? 'toS' : 'idle';
+      else moveF(b.x, b.y, () => { b.fly = { f: f.o }; if (f.n >= 4) f.st = 'toS'; });
+    } else if (f.st === 'toS') {
+      moveF(post.x, post.y, () => {
+        if (f.carry > 0) {
+          state.cash += f.carry; state.earned = (state.earned||0) + f.carry; sCoin(); coinFly(f.x, f.y);
+          floatTxt(post.x, post.y-42, '+' + fmt(f.carry), '#2E7D32');
+        }
+        f.carry = 0; f.n = 0; f.st = 'idle';
+      });
+    }
+  });
+
+
+
+  const ec = { x:L.exit.x+L.exit.w/2, y:L.exit.y+L.exit.h/2 };
+  const mc = COUNTRIES[state.country].moveCost;
+  const frontier = Math.max.apply(null, ownedOffices()) === state.country;
+  if (isFinite(mc) && frontier) {
+    const near = dist(player.x,player.y,ec.x,ec.y+30) < 90;
+    if (near && !exitLatch && state.cash >= mc && !modalOpen) { exitLatch = true; spendConfirmCountry(); }
+    if (!near) exitLatch = false;
+  }
+
+  const mgc = rc(L.mgr);
+  const nearM = dist(player.x,player.y,mgc.x,mgc.y) < 95;
+  if (nearM && !panelLatch && !panelOpen && !modalOpen) { panelLatch = true; openPanel(); }
+  if (!nearM) panelLatch = false;
+
+  const pInc = passiveRate()/60*dt;
+  state.cash += pInc; state.earned = (state.earned||0) + pInc;
+
+  if (!state.payOn && trading() && (state.earned||0) >= PAY_GATE()) {
+    state.payOn = true;
+    toast('Payroll is now live \u2014 salaries due every ' + MONTH + 's');
+    saveGame();
+  }
+
+  if (payrollOn() && !gameOver) {
+    state.payT -= dt;
+    if (state.payT <= 0) {
+      const due = monthlyDue();
+      state.payT = MONTH; state.months++;
+      state.cash -= due;
+      payFlash = state.cash < 0 ? 1.6 : 1.2; payLast = due;
+      floatTxt(VW/2, 200, 'Payroll -' + fmt(due), '#B03A2E');
+      beep(300, 0.12, 'triangle', 0.07);
+      if (state.cash <= -RUIN()) {
+        gameOver = true;
+        showModal('Out of business',
+          'Your balance sank below ' + fmt(-RUIN()) + ' and the office is done.',
+          [ { label:'Start this office over', pri:true, fn:() => {
+              Object.assign(state, freshOffice());
+              state.cash = nice(START_CASH * mul()); state.earned = 0; state.payOn = false; state.payT = MONTH; state.months = 0;
+              resetFloor(); gameOver = false; applyHud(); saveGame();
+            } } ]);
+      }
+      saveGame();
+    }
+  }
+
+  if (state.tut < TUT.length && TUT[state.tut].done()) { state.tut++; saveGame(); }
+  if (!hintIT && !state.verts.includes('it') && state.cash > vertCost('it')*0.9) { hintIT = true; toast('IT staffing is available at the Manager desk'); }
+  if (!hintHC && state.verts.includes('it') && !state.verts.includes('hc') && state.cash > vertCost('hc')*0.9) { hintHC = true; toast('Healthcare industry is available at the Manager desk'); }
+
+  parts.forEach(p => { p.life -= dt; p.x += p.vx*dt; p.y += p.vy*dt; p.vy += 320*dt; });
+  parts = parts.filter(p => p.life > 0);
+  coinFx.forEach(c => { c.t += dt; });
+  const coinLanded = coinFx.some(c => c.t >= c.dur);
+  coinFx = coinFx.filter(c => c.t < c.dur);
+  if (coinLanded) {
+    const cel = $('cash');
+    cel.classList.add('pop');
+    clearTimeout(cel._p); cel._p = setTimeout(() => cel.classList.remove('pop'), 130);
+  }
+  floaters.forEach(f => { f.life -= dt; f.y -= 34*dt; });
+  floaters = floaters.filter(f => f.life > 0);
+}
+
+function shade(hex, f) {
+  const n = parseInt(hex.slice(1), 16);
+  let r2 = (n>>16)&255, g2 = (n>>8)&255, b2 = n&255;
+  r2 = Math.max(0, Math.min(255, Math.round(r2*f)));
+  g2 = Math.max(0, Math.min(255, Math.round(g2*f)));
+  b2 = Math.max(0, Math.min(255, Math.round(b2*f)));
+  return '#' + ((1<<24) + (r2<<16) + (g2<<8) + b2).toString(16).slice(1);
+}
+function block3d(x, y, w, hh, depth, top, r) {
+  ctx.fillStyle = 'rgba(45,35,20,0.2)';
+  rr(x+4, y+depth+7, w, hh, r); ctx.fill();
+  ctx.fillStyle = shade(top, 0.72);
+  rr(x, y+hh-r, w, depth+r, r); ctx.fill();
+  ctx.fillStyle = top;
+  rr(x, y, w, hh, r); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.28)';
+  rr(x+4, y+3, w-8, 6, 3); ctx.fill();
+}
+function rr(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y); ctx.arcTo(x+w, y, x+w, y+h, r); ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r); ctx.arcTo(x, y, x+w, y, r); ctx.closePath();
+}
+function shadow(x, y, w) {
+  ctx.fillStyle = 'rgba(60,50,35,0.16)';
+  ctx.beginPath(); ctx.ellipse(x, y, w, w*0.42, 0, 0, Math.PI*2); ctx.fill();
+}
+function drawStaff(u, tag) {
+  const bob = u.mv || (u.st && u.st !== 'idle') ? Math.sin(performance.now()/70 + u.o)*2.4 : Math.sin(performance.now()/420 + u.o)*1.1;
+  shadow(u.x, u.y+16, 14);
+  const by = u.y + bob;
+  const sg = ctx.createLinearGradient(u.x, by-12, u.x, by+18);
+  sg.addColorStop(0, STAFF_UNIFORM); sg.addColorStop(1, shade(STAFF_UNIFORM, 0.78));
+  ctx.fillStyle = sg;
+  rr(u.x-11, by-11, 22, 28, 10); ctx.fill();
+  ctx.fillStyle = '#EDE7DA';
+  ctx.beginPath(); ctx.moveTo(u.x-7, by-11); ctx.lineTo(u.x, by-2); ctx.lineTo(u.x+7, by-11); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#F2C9A0';
+  ctx.beginPath(); ctx.arc(u.x, by-21, 11, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.beginPath(); ctx.arc(u.x-4, by-25, 3.2, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#33261A';
+  ctx.beginPath(); ctx.arc(u.x, by-24, 10.5, Math.PI, 0); ctx.fill();
+  ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath(); ctx.arc(u.x+11, by+4, 7.5, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = STAFF_UNIFORM; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(u.x+11, by+4, 7.5, 0, Math.PI*2); ctx.stroke();
+  ctx.fillStyle = STAFF_UNIFORM; ctx.font = F(700, 10); ctx.textAlign = 'center';
+  ctx.fillText(tag, u.x+11, by+7.5);
+}
+function drawPerson(x, y, sc, shirt, opts) {
+  opts = opts || {};
+  const bob = opts.moving ? Math.sin(performance.now()/70 + (opts.seed||0))*2.4 : Math.sin(performance.now()/420 + (opts.seed||0))*1.1;
+  shadow(x, y+18*sc, 15*sc);
+  const by = y + bob;
+  const bg = ctx.createLinearGradient(x, by-14*sc, x, by+18*sc);
+  bg.addColorStop(0, shirt); bg.addColorStop(1, shade(shirt, 0.8));
+  ctx.fillStyle = bg;
+  rr(x-12*sc, by-12*sc, 24*sc, 30*sc, 11*sc); ctx.fill();
+  if (opts.tie) {
+    ctx.fillStyle = opts.tie;
+    ctx.beginPath(); ctx.moveTo(x, by-8*sc); ctx.lineTo(x+4*sc, by+2*sc); ctx.lineTo(x, by+10*sc); ctx.lineTo(x-4*sc, by+2*sc); ctx.closePath(); ctx.fill();
+  }
+  ctx.fillStyle = opts.skin || '#F2C9A0';
+  ctx.beginPath(); ctx.arc(x, by-23*sc, 12*sc, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.beginPath(); ctx.arc(x-4*sc, by-27*sc, 3.5*sc, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = opts.hair || '#4A3826';
+  ctx.beginPath(); ctx.arc(x, by-26*sc, 11*sc, Math.PI, 0); ctx.fill();
+  if (opts.case) {
+    ctx.fillStyle = '#6B4F35';
+    rr(x+11*sc, by+4*sc, 13*sc, 10*sc, 2); ctx.fill();
+  }
+}
+function drawResume(x, y, rot, vert) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot||0);
+  ctx.fillStyle = '#FFFFFF'; rr(-11, -14, 22, 28, 3); ctx.fill();
+  ctx.strokeStyle = '#D8D0BC'; ctx.lineWidth = 1; rr(-11, -14, 22, 28, 3); ctx.stroke();
+  ctx.fillStyle = VERTS[vert].color; rr(3, -14, 8, 8, 2); ctx.fill();
+  ctx.strokeStyle = '#C9C2AE';
+  ctx.beginPath();
+  for (let i=0;i<3;i++) { ctx.moveTo(-7, -4+i*6); ctx.lineTo(7, -4+i*6); }
+  ctx.stroke();
+  ctx.restore();
+}
+function drawBill(b) {
+  ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(Math.sin(b.t*3+b.x)*0.15);
+
+  ctx.fillStyle = '#4E8A3E'; rr(-13, -5, 26, 15, 4); ctx.fill();
+  ctx.fillStyle = '#7DC46C'; rr(-13, -9, 26, 15, 4); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.4)'; rr(-11, -8, 22, 4, 2); ctx.fill();
+  ctx.fillStyle = '#E9F5DF'; ctx.beginPath(); ctx.arc(0, -1.5, 4.5, 0, Math.PI*2); ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+const mtCache = {};
+// shrink a font until the label fits a given width (used inside fixed-size boxes)
+function fitFont(label, weight, size, maxW) {
+  let s = size;
+  ctx.font = F(weight, s);
+  while (s > 8 && ctx.measureText(label).width > maxW) { s -= 1; ctx.font = F(weight, s); }
+}
+// centred text that never runs off the visible edges
+function ctext(label, cx, y) {
+  const half = ctx.measureText(label).width/2;
+  const lo = -OFFX + 8 + half, hi = -OFFX + VIS_W - 8 - half;
+  ctx.fillText(label, hi > lo ? Math.max(lo, Math.min(hi, cx)) : cx, y);
+}
+function station(r, fill, label, labelCol) {
+  block3d(r.x, r.y, r.w, r.h, 14, fill, 14);
+  ctx.font = F(600, 14); ctx.textAlign = 'center';
+  const mtKey = UI_SCALE + '|' + label;
+  const lw = (mtCache[mtKey] !== undefined ? mtCache[mtKey] : (mtCache[mtKey] = ctx.measureText(label).width)) + 24;
+  const lo = -OFFX + 6 + lw/2, hi = -OFFX + VIS_W - 6 - lw/2;
+  const cx = hi > lo ? Math.max(lo, Math.min(hi, r.x+r.w/2)) : r.x+r.w/2;
+  ctx.fillStyle = 'rgba(255,252,242,0.92)';
+  rr(cx-lw/2, r.y-28, lw, 22, 11); ctx.fill();
+  ctx.fillStyle = 'rgba(59,50,39,0.12)';
+  rr(cx-lw/2, r.y-9, lw, 3, 2); ctx.fill();
+  ctx.fillStyle = labelCol || '#6B5738';
+  ctx.fillText(label, cx, r.y-13);
+}
+function bar(x, y, w, pct, col) {
+  ctx.fillStyle = 'rgba(60,50,35,0.2)'; rr(x, y, w, 8, 4); ctx.fill();
+  if (pct > 0.02) { ctx.fillStyle = col; rr(x, y, Math.max(6, w*pct), 8, 4); ctx.fill(); }
+}
+
+let bgCv = null, bgKey = '';
+function drawStaticLayer(C) {
+  // bake the architectural set dressing: floor, checkerboard, light pool, wall, windows, sign
+  if (!bgCv) bgCv = document.createElement('canvas');
+  bgCv.width = cv.width; bgCv.height = cv.height;
+  const bctx = bgCv.getContext('2d');
+  if (!bctx) return;
+  const prev = ctx; ctx = bctx;
+  ctx.setTransform(PXR, 0, 0, PXR, OFFX*PXR, OFFY*PXR);
+  const vx = -OFFX, vy = -OFFY;
+  ctx.clearRect(vx, vy, VIS_W, VIS_H);
+  ctx.fillStyle = C.floorA; ctx.fillRect(vx, vy, VIS_W, VIS_H);
+  ctx.fillStyle = C.floorB;
+  const ts = 96;
+  for (let ty=Math.floor(vy/ts); ty<(vy+VIS_H)/ts; ty++) for (let tx=Math.floor(vx/ts); tx<(vx+VIS_W)/ts; tx++)
+    if (((tx%2)+2)%2 === ((ty%2)+2)%2) ctx.fillRect(tx*ts, ty*ts, ts, ts);
+  const cy2 = vy + VIS_H/2;
+  const pool = ctx.createRadialGradient(VW/2, cy2, 120, VW/2, cy2, VIS_H*0.62);
+  pool.addColorStop(0, 'rgba(255,250,230,0.32)'); pool.addColorStop(1, 'rgba(255,250,230,0)');
+  ctx.fillStyle = pool; ctx.fillRect(vx, vy, VIS_W, VIS_H);
+  ctx.fillStyle = C.wall; ctx.fillRect(vx, vy, VIS_W, 96 - vy);
+  ctx.fillStyle = shade(C.wall, 0.78); ctx.fillRect(vx, 86, VIS_W, 12);
+  ctx.fillStyle = 'rgba(0,0,0,0.1)'; ctx.fillRect(vx, 98, VIS_W, 6);
+  for (let i=0;i<3;i++) {
+    const wx = 268 + i*140;
+    ctx.fillStyle = 'rgba(255,255,255,0.2)'; rr(wx, 18, 96, 58, 9); ctx.fill();
+    ctx.fillStyle = C.sky || 'rgba(150,205,230,0.55)'; rr(wx+5, 23, 86, 48, 6); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.32)';
+    ctx.beginPath(); ctx.moveTo(wx+5, 71); ctx.lineTo(wx+38, 23); ctx.lineTo(wx+56, 23); ctx.lineTo(wx+23, 71); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.45)'; ctx.lineWidth = 2.5; rr(wx, 18, 96, 58, 9); ctx.stroke();
+  }
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.font = '700 22px Fredoka'; ctx.textAlign = 'left';
+  ctx.fillText('HYRING', 22, 46);
+  ctx.fillStyle = 'rgba(255,255,255,0.72)';
+  ctx.font = '500 14px Fredoka';
+  ctx.fillText(C.name + ' office', 22, 68);
+  ctx.fillStyle = 'rgba(120,100,70,0.1)';
+  rr(L.door.x+L.door.w+6, L.door.y+34, 62, 44, 8); ctx.fill();
+  ctx = prev;
+}
+let vgCache = null;
+function render() {
+  const C = COUNTRIES[state.country];
+  const key = state.country + '|' + cv.width + 'x' + cv.height + '|' + Math.round(OFFX) + ',' + Math.round(OFFY);
+  if (key !== bgKey) { drawStaticLayer(C); bgKey = key; }
+  if (bgCv) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    try { ctx.drawImage(bgCv, 0, 0); } catch(e) {}
+    ctx.setTransform(PXR, 0, 0, PXR, OFFX*PXR, OFFY*PXR);
+  }
+
+
+
+  const sh = L.shred;
+  shredA = Math.max(0, Math.min(1, (shredA||0) + (player.carrying.length ? dt2*4 : -dt2*4)));
+  if (shredA > 0.01) {
+  ctx.save(); ctx.globalAlpha = shredA;
+  ctx.fillStyle = 'rgba(60,50,35,0.14)'; rr(sh.x+3, sh.y+5, sh.w, sh.h, 10); ctx.fill();
+  ctx.fillStyle = '#8A8A92'; rr(sh.x, sh.y, sh.w, sh.h, 10); ctx.fill();
+  ctx.strokeStyle = 'rgba(50,50,58,0.4)'; ctx.lineWidth = 2; rr(sh.x, sh.y, sh.w, sh.h, 10); ctx.stroke();
+  ctx.fillStyle = '#3E3E46'; rr(sh.x+10, sh.y+9, sh.w-20, 7, 3); ctx.fill();
+  ctx.fillStyle = '#5C5C64';
+  for (let i=0;i<3;i++) rr(sh.x+12+i*16, sh.y+26, 10, 22, 3), ctx.fill();
+  ctx.fillStyle = 'rgba(110,95,65,0.85)'; ctx.font = F(500, 12); ctx.textAlign='center';
+  ctx.fillText('Shredder', sh.x+sh.w/2, sh.y+sh.h+15);
+  ctx.restore();
+  }
+
+  const mc = COUNTRIES[state.country].moveCost;
+  if (isFinite(mc) && Math.max.apply(null, ownedOffices()) === state.country) {
+    const e = L.exit, afford = state.cash >= mc;
+    ctx.fillStyle = afford ? '#E8B93C' : 'rgba(150,135,105,0.5)';
+    rr(e.x, e.y, e.w, e.h, 14); ctx.fill();
+    ctx.strokeStyle = afford ? '#A87F14' : 'rgba(110,95,70,0.5)'; ctx.lineWidth = 2.5;
+    rr(e.x, e.y, e.w, e.h, 14); ctx.stroke();
+    ctx.fillStyle = afford ? '#5C4406' : '#F5EFE2';
+    ctx.textAlign = 'center';
+    const eLbl = 'Move to ' + COUNTRIES[state.country+1].name;
+    fitFont(eLbl, 600, 15, e.w - 14);
+    ctx.fillText(eLbl, e.x+e.w/2, e.y+27);
+    fitFont(fmt(mc), 700, 16, e.w - 14);
+    ctx.fillText(fmt(mc), e.x+e.w/2, e.y+49);
+    if (afford) {
+      const pl = 1 + Math.sin(performance.now()/300)*0.5;
+      ctx.strokeStyle = 'rgba(232,185,60,' + (0.35*pl) + ')'; ctx.lineWidth = 5;
+      rr(e.x-5, e.y-5, e.w+10, e.h+10, 17); ctx.stroke();
+    }
+  }
+
+  station(L.printer, '#D8CBB2', 'Job board');
+  const pr = L.printer;
+  ctx.fillStyle = '#8A7A5E'; rr(pr.x+16, pr.y+18, 70, 46, 8); ctx.fill();
+  const feed = 1 - Math.min(1, printT/Math.max(0.001, printInterval()));
+  ctx.fillStyle = '#F6F2E6'; rr(pr.x+30, pr.y+58, 42, Math.max(1, 20*feed), 3); ctx.fill();
+  ctx.fillStyle = '#B9E0EE'; rr(pr.x+24, pr.y+26, 54, 14, 3); ctx.fill();
+  const scanX = pr.x+26 + ((performance.now()/9) % 50);
+  ctx.fillStyle = 'rgba(255,255,255,0.55)'; rr(scanX, pr.y+27, 5, 12, 2); ctx.fill();
+  const blink = printerStack.length >= printCap() ? (Math.sin(performance.now()/180) > 0 ? '#E06A4E' : '#7A4A40') : '#7DBB6C';
+  ctx.fillStyle = blink; ctx.beginPath(); ctx.arc(pr.x+82, pr.y+50, 4, 0, Math.PI*2); ctx.fill();
+  for (let i=0;i<printerStack.length;i++)
+    drawResume(pr.x+118, pr.y+66-i*6, Math.sin(i*2.3)*0.12, printerStack[i]);
+  const pips = (x,y,lvl,max2) => {
+    for (let i=0;i<max2;i++) { ctx.fillStyle = i<lvl ? '#D9A31B' : 'rgba(120,105,80,0.3)'; rr(x+i*13, y, 9, 4, 2); ctx.fill(); }
+  };
+  pips(pr.x+16, pr.y+pr.h-12, state.ups.printer, UPS.printer.max);
+  if (printerStack.length >= printCap()) {
+    ctx.fillStyle = '#8A6A3A'; ctx.font = F(500, 12); ctx.textAlign='center';
+    ctx.fillText('Tray full!', pr.x+pr.w/2, pr.y+pr.h+16);
+  }
+
+  station(L.desk, '#CFD8C4', 'Screening desk');
+  const dk = L.desk;
+  ctx.fillStyle = '#5F6E58'; rr(dk.x+18, dk.y+22, 56, 38, 6); ctx.fill();
+  ctx.fillStyle = '#CFEFC8'; rr(dk.x+23, dk.y+27, 46, 22, 3); ctx.fill();
+  if (deskQueue.length) {
+    const sy = dk.y+27 + ((performance.now()/6) % 22);
+    ctx.fillStyle = 'rgba(60,120,70,0.5)'; rr(dk.x+23, sy, 46, 2.5, 1); ctx.fill();
+    ctx.fillStyle = 'rgba(120,200,130,0.5)';
+    for (let i=0;i<3;i++) {
+      const t3 = (performance.now()/280 + i*0.7) % 1;
+      ctx.globalAlpha = 0.6*(1-t3);
+      ctx.beginPath(); ctx.arc(dk.x+46, dk.y+20 - t3*18, 3, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  for (let i=0;i<deskQueue.length;i++)
+    drawResume(dk.x+104+((i%3)*24), dk.y+38+Math.floor(i/3)*16, 0.1*((i%3)-1), deskQueue[i]);
+  if (deskQueue.length) bar(dk.x+16, dk.y+dk.h-14, dk.w-32, screenT/screenTime(), '#6FA85C');
+  pips(dk.x+84, dk.y+12, state.ups.screen, UPS.screen.max);
+
+  const z = L.zone;
+  const zn = candidates.filter(c=>c.st==='wait').length, zFull = zn >= zoneCap();
+  ctx.setLineDash([8,7]); ctx.strokeStyle = zFull ? 'rgba(200,90,60,0.7)' : 'rgba(110,95,65,0.45)'; ctx.lineWidth = 2;
+  rr(z.x, z.y, z.w, z.h, 14); ctx.stroke(); ctx.setLineDash([]);
+  zoneSlots.slice(0, zoneCap()).forEach(s => {
+    ctx.fillStyle = 'rgba(120,100,70,0.13)';
+    ctx.beginPath(); ctx.ellipse(s.x, s.y+16, 15, 6, 0, 0, Math.PI*2); ctx.fill();
+  });
+  ctx.fillStyle = zFull ? '#B03A2E' : 'rgba(110,95,65,0.8)'; ctx.font = F(600, 13); ctx.textAlign='center';
+  ctx.fillText('Screened  ' + zn + '/' + zoneCap() + (zFull ? '  ·  screening paused' : ''), z.x+z.w/2, z.y-8);
+
+
+
+  station(L.booth, '#C6D6E4', 'Interview rooms', '#3C5A73');
+  const bo = L.booth;
+  for (let i=0;i<boothCap();i++) {
+    const s = boothSlots[i];
+    ctx.fillStyle = 'rgba(255,255,255,0.55)'; rr(s.x-25, bo.y+12, 50, 100, 9); ctx.fill();
+    ctx.strokeStyle = 'rgba(60,90,115,0.28)'; ctx.lineWidth = 1.8; rr(s.x-25, bo.y+12, 50, 100, 9); ctx.stroke();
+    ctx.fillStyle = 'rgba(60,90,115,0.35)'; rr(s.x-13, bo.y+18, 26, 13, 3); ctx.fill();
+  }
+
+  candidates.forEach(c => {
+    if (c.st !== 'booth') return;
+    const s = boothSlots[c.bslot];
+    if (roomRec[c.bslot] || c.bslot === playerRoom()) {
+      bar(s.x-20, bo.y+bo.h-16, 40, Math.min(1, (c.iT||0)/interviewTime()), '#6FA85C');
+      const talk = Math.sin(performance.now()/380 + c.bslot*1.7) > 0;
+      const bx2 = talk ? s.x+13 : s.x-13, by2 = talk ? bo.y+22 : s.y-40;
+      ctx.fillStyle = '#FFFFFF'; rr(bx2-11, by2-8, 22, 15, 7); ctx.fill();
+      ctx.strokeStyle = 'rgba(60,90,115,0.4)'; ctx.lineWidth = 1.4; rr(bx2-11, by2-8, 22, 15, 7); ctx.stroke();
+      ctx.fillStyle = '#5A7EA8';
+      for (let i=0;i<3;i++) { ctx.beginPath(); ctx.arc(bx2-5+i*5, by2, 1.6, 0, Math.PI*2); ctx.fill(); }
+    } else {
+      ctx.fillStyle = 'rgba(90,100,115,0.75)';
+      rr(s.x-11, bo.y+bo.h-20, 8, 13, 2); ctx.fill();
+      rr(s.x+3, bo.y+bo.h-20, 8, 13, 2); ctx.fill();
+      bar(s.x-20, bo.y+bo.h-16, 40, Math.min(1, (c.iT||0)/interviewTime()), '#A6B0BC');
+      ctx.font = F(600, 10); ctx.textAlign = 'center';
+      ctx.fillText('no interviewer', s.x, bo.y+bo.h+14);
+    }
+  });
+  const rn = candidates.filter(c=>c.st==='ready').length, rFull = rn >= readyCap();
+  ctx.setLineDash([8,7]); ctx.strokeStyle = rFull ? 'rgba(200,90,60,0.7)' : 'rgba(60,120,80,0.4)'; ctx.lineWidth = 2;
+  rr(304, 638, 432, 62, 14); ctx.stroke(); ctx.setLineDash([]);
+  readySpots.slice(0, readyCap()).forEach(s => {
+    ctx.fillStyle = 'rgba(60,120,80,0.14)';
+    ctx.beginPath(); ctx.ellipse(s.x, s.y+16, 15, 6, 0, 0, Math.PI*2); ctx.fill();
+  });
+  ctx.fillStyle = rFull ? '#B03A2E' : 'rgba(60,110,75,0.85)'; ctx.font = F(600, 13); ctx.textAlign='center';
+  ctx.fillText('Ready to place  ' + rn + '/' + readyCap() + (rFull ? '  ·  interviews paused' : ''), 520, 630);
+
+  const bn = L.banner;
+  const promoLocked = !trading();
+  const promoReady = !promoLocked && !rushOn && promoCd <= 0;
+  block3d(bn.x, bn.y, bn.w, bn.h, 10, promoReady ? '#D9A7C9' : '#C4BBB0', 12);
+  ctx.fillStyle = 'rgba(255,255,255,0.9)'; rr(bn.x+9, bn.y+9, bn.w-18, bn.h-34, 7); ctx.fill();
+  ctx.fillStyle = '#8A6E4C'; rr(bn.x+bn.w/2-13, bn.y+16, 26, 16, 3); ctx.fill();
+  ctx.fillStyle = promoReady ? '#7A3A66' : '#8A8078';
+  ctx.font = F(700, 10); ctx.textAlign = 'center';
+  ctx.fillText('PROMO', bn.x+bn.w/2, bn.y+44);
+  ctx.font = F(600, 13);
+  ctx.fillStyle = 'rgba(59,50,39,0.75)';
+  if (promoLocked) ctext('Opens after 3 placements', bn.x+bn.w/2, bn.y-10);
+  else if (rushOn) ctext('Running ' + Math.ceil(rushLeft) + 's', bn.x+bn.w/2, bn.y-10);
+  else if (promoCd > 0) ctext('Ready in ' + Math.ceil(promoCd) + 's', bn.x+bn.w/2, bn.y-10);
+  else ctext('Promotion ' + fmt(promoCost()), bn.x+bn.w/2, bn.y-10);
+  if (padProg.promo > 0.02) {
+    ctx.strokeStyle = '#C065A8'; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.arc(bn.x+bn.w/2, bn.y+bn.h/2, 56, -Math.PI/2, -Math.PI/2 + (padProg.promo/0.8)*Math.PI*2); ctx.stroke();
+  }
+
+  station(L.mgr, '#D3C4DE', 'Manager desk');
+  const mg = L.mgr;
+  ctx.fillStyle = '#7A5E92'; rr(mg.x+20, mg.y+24, 52, 36, 6); ctx.fill();
+  ctx.fillStyle = '#EBDFF5'; rr(mg.x+25, mg.y+29, 42, 20, 3); ctx.fill();
+  ctx.fillStyle = '#6A5480'; ctx.font = F(500, 12); ctx.textAlign='center';
+  ctx.fillText('Upgrades', mg.x+mg.w/2, mg.y+mg.h+16);
+
+  const d = L.door;
+  ctx.fillStyle = '#8A6E4C'; rr(d.x, d.y, d.w, d.h, 8); ctx.fill();
+  ctx.fillStyle = '#6E5638'; rr(d.x+8, d.y+8, d.w-16, d.h-16, 6); ctx.fill();
+  ctx.fillStyle = '#D9C9A8'; ctx.beginPath(); ctx.arc(d.x+d.w-18, d.y+d.h/2, 4, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(110,95,65,0.7)'; ctx.font = F(500, 12); ctx.textAlign='center';
+  ctx.fillText('Clients', d.x+d.w/2, d.y-8);
+
+  const lb = L.lobby;
+  ctx.fillStyle = 'rgba(255,252,242,0.5)'; rr(lb.x, lb.y, lb.w, lb.h, 20); ctx.fill();
+  ctx.strokeStyle = 'rgba(120,100,70,0.2)'; ctx.lineWidth = 3; rr(lb.x, lb.y, lb.w, lb.h, 20); ctx.stroke();
+  ctx.fillStyle = 'rgba(110,95,65,0.75)'; ctx.font = F(600, 13); ctx.textAlign = 'center';
+  ctx.fillText('Client lobby', lb.x + lb.w/2, lb.y - 10);
+  clientSlots.slice(0, clientCap()).forEach(s => {
+    ctx.fillStyle = 'rgba(120,100,70,0.13)';
+    rr(s.x-26, s.y+16, 52, 12, 6); ctx.fill();
+  });
+
+  bills.forEach(drawBill);
+
+  candidates.forEach(c => {
+    if (!c.done) ctx.globalAlpha = 0.85;
+    drawPerson(c.x, c.y, 0.82, VERTS[c.vert].color, { seed:c.bob, moving:c.st==='follow'||c.st==='joining'||c.st==='expire' });
+    ctx.globalAlpha = 1;
+
+    if (c.st === 'ready' && (c.readyT||0) > 20) {
+      const wx = c.x+14, wy = c.y-36;
+      ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(wx, wy, 7, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#B03A2E'; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.arc(wx, wy, 7, 0, Math.PI*2); ctx.stroke();
+      const ang = ((c.readyT-20)/6)*Math.PI*2 - Math.PI/2;
+      ctx.beginPath(); ctx.moveTo(wx, wy); ctx.lineTo(wx+Math.cos(ang)*4.6, wy+Math.sin(ang)*4.6); ctx.stroke();
+    }
+  });
+
+  clients.forEach(cl => {
+    drawPerson(cl.x, cl.y, 1, cl.vip ? '#C9A227' : '#23242C', { seed:cl.bob, moving:cl.st!=='wait', tie:cl.vip ? '#7A5C06' : VERTS[cl.vert].color, case:true, hair:'#3A3A3A' });
+    if (cl.vip) {
+      ctx.fillStyle = '#E8C23C';
+      const hy = cl.y - 36 + (cl.st!=='wait' ? Math.sin(performance.now()/70+cl.bob)*2.4 : Math.sin(performance.now()/420+cl.bob)*1.1);
+      ctx.beginPath();
+      ctx.moveTo(cl.x-9, hy+5); ctx.lineTo(cl.x-9, hy-4); ctx.lineTo(cl.x-4.5, hy); ctx.lineTo(cl.x, hy-6);
+      ctx.lineTo(cl.x+4.5, hy); ctx.lineTo(cl.x+9, hy-4); ctx.lineTo(cl.x+9, hy+5); ctx.closePath(); ctx.fill();
+      if (cl.st === 'wait') {
+        ctx.fillStyle = '#C9A227'; rr(cl.x+16, hy-8, 34, 17, 8); ctx.fill();
+        ctx.fillStyle = '#FFFDF4'; ctx.font = F(700, 11); ctx.textAlign = 'center';
+        ctx.fillText('VIP x5', cl.x+33, hy+4);
+      }
+    }
+    if (cl.st === 'wait') {
+      const bx = cl.x, by = cl.y - 74;
+      ctx.fillStyle = '#FFFFFF'; rr(bx-34, by-18, 68, 36, 10); ctx.fill();
+      ctx.strokeStyle = VERTS[cl.vert].color; ctx.lineWidth = 2.5; rr(bx-34, by-18, 68, 36, 10); ctx.stroke();
+      ctx.fillStyle = VERTS[cl.vert].color;
+      ctx.beginPath(); ctx.arc(bx-13, by-4, 5.5, 0, Math.PI*2); ctx.fill();
+      rr(bx-19, by+2, 12, 10, 4); ctx.fill();
+      ctx.fillStyle = VERTS[cl.vert].dark; ctx.font = F(700, 16); ctx.textAlign='left';
+      ctx.fillText('x' + cl.need, bx+1, by+7);
+      const pct = cl.patience/cl.maxP;
+      bar(bx-30, by+22, 60, pct, pct > 0.35 ? '#7DBB6C' : '#E06A4E');
+      if (pct < 0.55) {
+        ctx.strokeStyle = 'rgba(200,138,46,0.8)'; ctx.lineWidth = 2;
+        ctx.setLineDash([4,3]);
+        rr(bx-34, by-18, 68, 36, 10); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      if (pct < 0.32) {
+        ctx.globalAlpha = 0.55 + Math.sin(performance.now()/120)*0.45;
+        ctx.fillStyle = '#D64533'; ctx.font = F(800, 21); ctx.textAlign = 'center';
+        ctx.fillText('!', bx+44, by+3);
+        ctx.globalAlpha = 1;
+      }
+    }
+  });
+
+  emp.sourcers.forEach(s => {
+    drawStaff(s, 'S');
+    s.carrying.forEach((v,i) => drawResume(s.x, s.y-38-i*7, Math.sin(performance.now()/160+i)*0.09, v));
+  });
+  emp.ams.forEach(a => drawStaff(a, 'A'));
+  emp.fins.forEach(f => {
+    drawStaff(f, 'F');
+    for (let i=0;i<Math.min(f.n,5);i++) drawBill({ x:f.x, y:f.y-38-i*7, t:i*0.7, val:0 });
+  });
+  emp.recs.forEach(r => popWrap(r.x, r.y+16, r.pop || 0, () => drawStaff(r, 'R')));
+
+  const pr2 = playerRoom();
+  if (pr2 >= 0) {
+    const c2 = candidates.find(k => k.st === 'booth' && k.bslot === pr2);
+    if (c2) {
+      ctx.fillStyle = 'rgba(59,50,39,0.88)';
+      rr(player.x-42, player.y-84, 84, 22, 11); ctx.fill();
+      ctx.fillStyle = '#FFFFFF'; ctx.font = F(700, 12); ctx.textAlign = 'center';
+      ctx.fillText('Interviewing', player.x, player.y-69);
+    }
+  }
+  const pg = ctx.createRadialGradient(player.x, player.y+16, 4, player.x, player.y+16, 34);
+  pg.addColorStop(0, 'rgba(255,201,60,0.45)'); pg.addColorStop(1, 'rgba(255,201,60,0)');
+  ctx.fillStyle = pg;
+  ctx.beginPath(); ctx.ellipse(player.x, player.y+16, 34, 16, 0, 0, Math.PI*2); ctx.fill();
+  popWrap(player.x, player.y+18, player.pop || 0, () => drawPerson(player.x, player.y, 1.08, '#F5F0E4', { seed:1, moving:player.moving, tie:'#C9553C', hair:'#33261A' }));
+  player.carrying.forEach((v,i) =>
+    drawResume(player.x + Math.sin(performance.now()/150+i*1.1)*(1.5+i*0.8), player.y-46-i*7, Math.sin(performance.now()/150+i*1.1)*0.1, v));
+
+  coinFx.forEach(c => {
+    if (c.t < 0) return;
+    const k = Math.min(1, c.t / c.dur), e2 = k*k*(3-2*k);
+    const tx2 = -OFFX + VIS_W - 110/scaleF, ty2 = -OFFY + 46/scaleF;
+    const cx2 = c.x0 + (tx2 - c.x0)*e2, cy2 = c.y0 + (ty2 - c.y0)*e2 - Math.sin(k*Math.PI)*90;
+    ctx.fillStyle = '#FFC93C'; ctx.beginPath(); ctx.arc(cx2, cy2, 8, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#FFE9A8'; ctx.beginPath(); ctx.arc(cx2-2.5, cy2-2.5, 3, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#C9922A'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(cx2, cy2, 8, 0, Math.PI*2); ctx.stroke();
+  });
+  parts.forEach(p => {
+    ctx.globalAlpha = Math.min(1, p.life*1.6);
+    ctx.fillStyle = p.col; ctx.fillRect(p.x-p.sz/2, p.y-p.sz/2, p.sz, p.sz);
+    ctx.globalAlpha = 1;
+  });
+  floaters.forEach(f => {
+    ctx.globalAlpha = Math.min(1, f.life*1.8);
+    ctx.font = F(700, 17); ctx.textAlign = 'center';
+    ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+    ctx.strokeText(f.txt, f.x, f.y);
+    ctx.fillStyle = f.col; ctx.fillText(f.txt, f.x, f.y);
+    ctx.globalAlpha = 1;
+  });
+
+  if (rushOn) {
+    const pulse = 0.75 + Math.sin(performance.now()/160)*0.2;
+    ctx.fillStyle = 'rgba(200,80,40,' + pulse*0.9 + ')';
+    ctx.fillRect(0, 224, VW, 36);
+    ctx.fillStyle = '#FFF3D6'; ctx.font = F(700, 18); ctx.textAlign = 'center';
+    ctx.fillText('PROMOTION LIVE  fees x1.5  ' + Math.ceil(rushLeft) + 's', VW/2, 249);
+  }
+  ctx.font = F(500, 13); ctx.textAlign = 'right';
+  ctx.fillStyle = 'rgba(90,78,58,0.62)';
+  ctx.fillText('Placed ' + state.placed + '   Rejected ' + (state.rejected||0) + '   Lost ' + state.lost, -OFFX+VIS_W-16, -OFFY+VIS_H-16);
+  const carrying = player_followers().filter(c => c.done).length;
+  if (carrying) {
+    const target = clients.find(cl => cl.st==='wait' && cl.need > 0);
+    if (target) {
+      const ax = target.x, ay = target.y - 118 + Math.sin(performance.now()/220)*7;
+      ctx.fillStyle = '#C9A227';
+      ctx.beginPath(); ctx.moveTo(ax, ay+20); ctx.lineTo(ax-13, ay); ctx.lineTo(ax+13, ay); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#8A6410'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.font = F(600, 12); ctx.textAlign = 'center';
+      ctx.fillStyle = '#8A6410';
+      ctext('needs ' + VERTS[target.vert].name, ax, ay-8);
+    }
+  }
+  if (state.tut < TUT.length) {
+    const t = TUT[state.tut].tgt();
+    const bounce = Math.sin(performance.now()/220)*7;
+    // top-row targets carry a station label above them: float the arrow higher so it stays clear
+    const ay = t.y - (t.y < 260 ? 108 : 76) + bounce;
+    ctx.fillStyle = '#FFFDF4';
+    ctx.beginPath();
+    ctx.moveTo(t.x, ay+20); ctx.lineTo(t.x-13, ay); ctx.lineTo(t.x+13, ay);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#3B3227'; ctx.lineWidth = 2.5; ctx.stroke();
+  }
+
+  if (payFlash > 0) {
+    ctx.fillStyle = 'rgba(210,80,60,' + Math.min(0.28, payFlash*0.22) + ')';
+    ctx.fillRect(0, 0, VW, VH);
+  }
+  if (!vgCache) {
+    const vcy = -OFFY + VIS_H/2;
+    vgCache = ctx.createRadialGradient(VW/2, vcy, VIS_H*0.34, VW/2, vcy, VIS_H*0.78);
+    vgCache.addColorStop(0, 'rgba(0,0,0,0)'); vgCache.addColorStop(1, 'rgba(60,48,30,0.14)');
+  }
+  ctx.fillStyle = vgCache; ctx.fillRect(-OFFX, -OFFY, VIS_W, VIS_H);
+
+  if (joy) {
+    ctx.globalAlpha = 0.3;
+    ctx.strokeStyle = '#FFF6E4'; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.arc(joy.o.x, joy.o.y, 54, 0, Math.PI*2); ctx.stroke();
+    ctx.globalAlpha = 0.75;
+    const kg = ctx.createRadialGradient(joy.o.x+joy.v.x-6, joy.o.y+joy.v.y-8, 4, joy.o.x+joy.v.x, joy.o.y+joy.v.y, 26);
+    kg.addColorStop(0, '#FFFDF4'); kg.addColorStop(1, '#E5D9BC');
+    ctx.fillStyle = kg;
+    ctx.beginPath(); ctx.arc(joy.o.x+joy.v.x, joy.o.y+joy.v.y, 25, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+  } else if (isCoarse && idleT > 4 && !modalOpen && !panelOpen) {
+    const pu = (Math.sin(performance.now()/300)+1)/2;
+    ctx.globalAlpha = 0.35 + 0.3*pu;
+    ctx.strokeStyle = '#FFF6E4'; ctx.lineWidth = 3;
+    const hy2 = -OFFY + VIS_H - 190;
+    ctx.beginPath(); ctx.arc(VW/2, hy2, 44 + 8*pu, 0, Math.PI*2); ctx.stroke();
+    ctx.fillStyle = '#FFF6E4'; ctx.textAlign = 'center';
+    ctx.font = F(600, 30); ctx.fillText('\u261D', VW/2, hy2 + 10);
+    ctx.font = F(600, 15); ctx.fillText('drag to walk', VW/2, hy2 + 62);
+    ctx.globalAlpha = 1;
+  }
+}
+
+let lastT = 0, saveT = 0;
+function loop(t) {
+  const dt = Math.min(0.05, (t - lastT)/1000 || 0.016);
+  lastT = t;
+  update(dt);
+  render();
+  const cEl = $('cash'), cTxt = fmt(state.cash);
+  if (cEl.textContent !== cTxt) {
+    cEl.textContent = cTxt;
+    cEl.style.color = state.cash < 0 ? '#FFB3A6' : '';
+    cEl.classList.add('pop');
+    clearTimeout(cEl._p); cEl._p = setTimeout(() => cEl.classList.remove('pop'), 130);
+  }
+  const pr = passiveRate();
+  $('passiveTxt').textContent = pr ? '+' + fmt(pr) + '/min  ·  tap to travel' : 'Build your empire';
+  const pc = $('payChip');
+  if (!payrollOn()) pc.style.display = 'none';
+  else {
+    const due = monthlyDue(), t2 = Math.ceil(state.payT);
+    const ph = 'Payroll ' + fmt(due) + ' in ' + t2 + 's<small>&nbsp;</small>';
+    const pbg = state.cash < due ? 'rgba(180,58,42,0.82)' : 'rgba(59,50,39,0.55)';
+    pc.style.display = 'block';
+    if (pc._h !== ph) { pc._h = ph; pc.innerHTML = ph; }
+    if (pc._bg !== pbg) { pc._bg = pbg; pc.style.background = pbg; }
+  }
+  const ob = $('objective');
+  if (state.tut < TUT.length) { ob.style.display = 'block'; ob.textContent = TUT[state.tut].txt; }
+  else ob.style.display = 'none';
+  if (panelOpen && every('pnl', 0.5)) {
+    panelBtns.forEach(x => { x.el.disabled = state.cash < x.cost; });
+    $('panelCash').textContent = fmt(state.cash);
+  }
+  saveT += dt;
+  if (saveT > 8) { saveT = 0; saveGame(); }
+  requestAnimationFrame(loop);
+}
+
+document.addEventListener('visibilitychange', () => { if (document.hidden) saveGame(); });
+
+(async function boot() {
+  resize();
+  const loaded = await loadGame();
+  if (loaded && typeof loaded.cash === 'number') {
+    state = Object.assign(freshState(), loaded);
+    state.ups = Object.assign(freshOffice().ups, loaded.ups || {});
+    state.hires = Object.assign(freshOffice().hires, loaded.hires || {});
+    state.country = Math.min(COUNTRIES.length-1, Math.max(0, loaded.country|0));
+    state.tut = Math.min(TUT.length, Math.max(0, loaded.tut|0));
+    state.placed = Math.max(0, loaded.placed|0);
+    state.verts = (Array.isArray(loaded.verts) ? loaded.verts : ['bc']).filter(v => VERTS[v]);
+    if (!state.verts.length) state.verts = ['bc'];
+    Object.keys(HIRES).forEach(k => { state.hires[k] = Math.max(0, Math.min(HIRES[k].max, +state.hires[k] || 0)); });
+    state.rejected = Math.max(0, loaded.rejected|0);
+    state.payOn = !!loaded.payOn;
+    state.earned = Math.max(0, +loaded.earned || 0);
+    state.payT = (typeof loaded.payT === 'number' && loaded.payT > 0) ? Math.min(MONTH, loaded.payT) : MONTH;
+    state.months = Math.max(0, loaded.months|0);
+    // migrations for saves older than v1
+    delete state.ups.culture; delete state.chain; delete state.debt;
+    state.v = 1;
+    state.offices = {};
+    if (loaded.offices) Object.keys(loaded.offices).forEach(k => {
+      const i = +k;
+      if (i >= 0 && i < COUNTRIES.length && i !== state.country) state.offices[i] = loaded.offices[k];
+    });
+    delete state.hires.mkt;
+    syncEmp();
+    const mins = Math.min(360, (Date.now() - (loaded.ts || Date.now()))/60000);
+    const gain = passiveRate() * mins;
+    if (gain >= 1) {
+      state.cash += gain; state.earned = (state.earned||0) + gain;
+      showModal('Welcome back', 'While you were away, your HQ offices earned <b>' + fmt(gain) + '</b>.', [{ label:'Collect', pri:true }]);
+    }
+  } else {
+    state = freshState();
+  }
+  resetFloor();
+  applyHud();
+  cv.tabIndex = 0;
+  setTimeout(() => { try { cv.focus(); } catch(e) {} }, 150);
+  try {
+    if (matchMedia('(pointer: coarse)').matches) toast('Drag anywhere to walk');
+    else toast('Move with WASD or the arrow keys');
+  } catch(e) {}
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
