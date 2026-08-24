@@ -574,6 +574,34 @@ setTimeout(async () => {
     if (!state.payOn) throw new Error('payroll did not latch once the gate was earned');
     log.push(['payroll gate latches on earnings, not starting cash', fmt(PAY_GATE())]);
 
+    // regression: a NaN/corrupt cash value must never be adopted from a save
+    if (isFinite(NaN)) throw new Error('isFinite broken');
+    {
+      const bad = Object.assign(freshState(), { cash: NaN });
+      if (typeof bad.cash === 'number' && isFinite(bad.cash)) throw new Error('NaN cash test is not exercising the guard');
+    }
+    // regression: upgrade levels clamp to their maxima (a stale save inflated every price)
+    state = freshState(); resetFloor();
+    state.ups.printer = 99; state.hires.rec = 99;
+    state.offices[1] = snapshotOffice();
+    state.country = 1; applyOffice(state.offices[1]);
+    if (state.ups.printer > UPS.printer.max) throw new Error('ups not clamped on office apply: ' + state.ups.printer);
+    if (state.hires.rec > HIRES.rec.max) throw new Error('hires not clamped on office apply: ' + state.hires.rec);
+    log.push(['save hardening', 'ups/hires clamped on travel']);
+    state = freshState(); resetFloor(); state.country = 0;
+
+    // regression: the drift valve is per-candidate, not one global 1.1s tap
+    state = freshState(); resetFloor(); state.tut = TUT.length; state.payOn = false;
+    candidates.length = 0; clients.length = 0; deskQueue.length = 0; clientT = 9999;
+    at(0, 1080);
+    for (let i = 0; i < 4; i++)
+      candidates.push({ x:zoneSlots[i].x, y:zoneSlots[i].y, vert:'bc', st:'wait', slot:i, owner:null, idx:0, bob:0, waitT:9.5 });
+    for (let i = 0; i < 40; i++) { simNow += 50; update(0.05); render(); } // 2s
+    const drifted = candidates.filter(c => c.st === 'booth').length;
+    if (drifted < 2) throw new Error('drift valve still globally throttled: only ' + drifted + ' moved in 2s');
+    log.push(['drift valve per-candidate', drifted + ' candidates seated in 2s']);
+    state = freshState(); resetFloor(); modalOpen = false;
+
     // client patience is not inert: an unservable client eventually walks out
     state = freshState(); resetFloor(); state.tut = TUT.length; gameOver = false; modalOpen = false;
     state.payOn = false; candidates.length = 0; clients.length = 0; bills.length = 0;

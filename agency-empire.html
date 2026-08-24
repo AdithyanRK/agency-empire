@@ -198,6 +198,12 @@ function applyOffice(o) {
   OFFICE_KEYS.forEach(k => { state[k] = (o && o[k] !== undefined) ? JSON.parse(JSON.stringify(o[k])) : f[k]; });
   state.ups = Object.assign(f.ups, state.ups);
   state.hires = Object.assign(f.hires, state.hires);
+  // stored office blobs are never validated on the way in - clamp them here
+  Object.keys(UPS).forEach(k => { state.ups[k] = Math.max(0, Math.min(UPS[k].max, +state.ups[k] || 0)); });
+  Object.keys(HIRES).forEach(k => { state.hires[k] = Math.max(0, Math.min(HIRES[k].max, +state.hires[k] || 0)); });
+  if (!Array.isArray(state.verts) || !state.verts.length) state.verts = ['bc'];
+  state.verts = state.verts.filter(v => VERTS[v]);
+  if (!state.verts.length) state.verts = ['bc'];
 }
 function ownedOffices() { return Object.keys(state.offices || {}).map(Number).concat([state.country]).filter((v,i,a)=>a.indexOf(v)===i).sort(); }
 function travelTo(idx) {
@@ -214,6 +220,21 @@ let emp, clientT, printT, cashEverPicked, panelLatch, exitLatch, hintIT, hintHC;
 let padProg, rushOn, rushLeft, promoCd, shredA = 0, dt2 = 0.016, payFlash = 0, payLast = 0, gameOver = false;
 let rushBank = 0;  // promo-rush client spawns held back by a full lobby
 let coinFx = [];
+let chipPos = null, chipKey = '';
+function cashChipWorld() {
+  const key = innerWidth + 'x' + innerHeight;
+  if (!chipPos || chipKey !== key) {
+    chipKey = key;
+    chipPos = { x: VW/2, y: -OFFY + 46/scaleF };   // sensible fallback
+    try {
+      const r = $('cash').getBoundingClientRect();
+      const cr = cv.getBoundingClientRect();
+      if (r.width) chipPos = { x: (r.left + r.width/2 - cr.left)/scaleF - OFFX,
+                               y: (r.top + r.height/2 - cr.top)/scaleF - OFFY };
+    } catch(e) {}
+  }
+  return chipPos;
+}
 function coinFly(x, y) {
   for (let i = 0; i < 3; i++) coinFx.push({
     x0: x + Math.random()*30 - 15, y0: y + Math.random()*20 - 10,
@@ -282,7 +303,7 @@ const payrollTotal = () => {
 const monthlyDue = () => payrollTotal();
 const trading = () => state.tut >= TUT.length || state.placed >= 3;
 const START_CASH = 1000;
-const PAY_GATE = () => 1000 * mul();
+const PAY_GATE = () => 5000 * mul();
 const RUIN = () => 10000 * mul();
 const payrollOn = () => !!state.payOn;
 
@@ -296,16 +317,19 @@ const upCost = k => nice(UPS[k].base * Math.pow(UPS[k].mult, state.ups[k]) * (1 
 const hireCost = k => nice(HIRES[k].cost * Math.pow(2.0, state.hires[k]) * mul());
 const vertCost = k => nice(VERTCOST[k] * mul());
 const passiveRate = () => { let r=0; ownedOffices().forEach(i => { if (i !== state.country) r += COUNTRIES[i].passive; }); return r; };
-const fmt = n => { const sg = n < 0 ? '-' : ''; n = Math.abs(n); return sg + (n >= 1000 ? '$' + (n/1000).toFixed(n>=10000?0:1) + 'k' : '$' + Math.floor(n)); };
+const fmt = n => { if (!isFinite(n)) n = 0; const sg = n <= -1 ? '-' : ''; n = Math.abs(n); return sg + (n >= 1000 ? '$' + (n/1000).toFixed(n>=10000?0:1) + 'k' : '$' + Math.floor(n)); };
 const dist = (a,b,x,y) => Math.hypot(a-x, b-y);
 const rc = r => ({ x:r.x+r.w/2, y:r.y+r.h/2 });
 
 let AC = null, ACG = null;
 function ensureAC() {
-  if (AC) return;
   try {
-    AC = new (window.AudioContext || window.webkitAudioContext)();
-    ACG = AC.createGain(); ACG.gain.value = 0.9; ACG.connect(AC.destination);
+    if (!AC) {
+      AC = new (window.AudioContext || window.webkitAudioContext)();
+      ACG = AC.createGain(); ACG.gain.value = 0.9; ACG.connect(AC.destination);
+    }
+    // Safari (iOS especially) hands back a suspended context until a gesture resumes it
+    if (AC.state === 'suspended' && AC.resume) AC.resume();
   } catch(err) {}
 }
 function beep(f, d, type, vol, when) {
@@ -388,7 +412,7 @@ function resize() {
   cv.style.width = cw + 'px'; cv.style.height = ch + 'px';
   wrap.style.width = cw + 'px'; wrap.style.height = ch + 'px';
   ctx.setTransform(PXR, 0, 0, PXR, OFFX*PXR, OFFY*PXR);
-  vgCache = null; bgKey = '';
+  vgCache = null; bgKey = ''; chipKey = '';
 }
 addEventListener('resize', resize);
 
@@ -557,7 +581,7 @@ $('sndBtn').onclick = () => { state.mute = !state.mute; $('sndBtn').textContent 
 const helpBtnEl = $('helpBtn');
 if (helpBtnEl) helpBtnEl.onclick = () => {
   showModal('Agency Empire',
-    'Drag anywhere to walk, or use WASD / arrow keys. Grab resumes at the job board and drop them at screening. Lead screened candidates from the waiting area into the interview rooms and stay with them: you are the fastest interviewer in the building, and a room with nobody in it barely moves. Recruiters each run one room and fetch waiting candidates on their own. Account managers introduce ready candidates to clients, but walking candidates over yourself is faster. Dump unwanted resumes in the shredder, or walk an unwanted candidate to the door to release them. Trigger a Promotion at the pink stand to flood the office with clients for 30 seconds. Once you have earned $1,000 of your own, payroll kicks in: every 45 seconds you owe salaries for your whole team, so hiring is a real commitment. Your balance can go negative \u2014 sink to \u221210k and the office goes under. Raise sourcing quality so fewer resumes get rejected, unlock new industries at the Manager desk, and expand to new countries at the gold arch.',
+    'Drag anywhere to walk, or use WASD / arrow keys. Grab resumes at the job board and drop them at screening. Lead screened candidates from the waiting area into the interview rooms and stay with them: you are the fastest interviewer in the building, and a room with nobody in it barely moves. Recruiters each run one room and fetch waiting candidates on their own. Account managers introduce ready candidates to clients, but walking candidates over yourself is faster. Dump unwanted resumes in the shredder, or walk an unwanted candidate to the door to release them. Trigger a Promotion at the pink stand to flood the office with clients for 30 seconds. Once you have earned $5,000 of your own, payroll kicks in: every 45 seconds you owe salaries for your whole team, so hiring is a real commitment. Your balance can go negative \u2014 sink to \u221210k and the office goes under. Raise sourcing quality so fewer resumes get rejected, unlock new industries at the Manager desk, and expand to new countries at the gold arch.',
     [ { label:'Reset game', fn:async()=>{ await wipeSave(); state = freshState(); resetFloor(); applyHud(); } },
       { label:'Play', pri:true } ]);
 };
@@ -746,7 +770,8 @@ function update(dt) {
   player.moving = mm > 0.05 && !panelOpen && !modalOpen;
   if (player.moving || joy) idleT = 0; else idleT += dt;
   if (player.pop) player.pop = Math.max(0, player.pop - dt*5);
-  ALLEMP().forEach(u => { if (u.pop) u.pop = Math.max(0, u.pop - dt*5); });
+  const decay = u => { if (u.pop) u.pop = Math.max(0, u.pop - dt*5); };
+  emp.sourcers.forEach(decay); emp.recs.forEach(decay); emp.ams.forEach(decay); emp.fins.forEach(decay);
   if (parts.length > 300) parts.length = 300;
   if (player.moving) {
     if (mm > 1) { mx/=mm; my/=mm; }
@@ -865,7 +890,7 @@ function update(dt) {
       c.x += (s.x-c.x)*Math.min(1, dt*6); c.y += (s.y-c.y)*Math.min(1, dt*6);
       c.waitT = (c.waitT||0) + dt;
       if (c.claim && !emp.recs[+String(c.claim).slice(3)]) c.claim = undefined; // claimer was let go
-      if (!c.claim && c.waitT > 9 && every('drift', 1.1)) {
+      if (!c.claim && c.waitT > 9 && every('drift' + c.slot, 1.1)) {
         const taken = candidates.filter(k => k.st==='booth').map(k => k.bslot);
         for (let i = 0; i < boothCap(); i++) {
           if (taken.includes(i)) continue;
@@ -1694,10 +1719,11 @@ function render() {
   player.carrying.forEach((v,i) =>
     drawResume(player.x + Math.sin(performance.now()/150+i*1.1)*(1.5+i*0.8), player.y-46-i*7, Math.sin(performance.now()/150+i*1.1)*0.1, v));
 
+  const chipW = cashChipWorld();
   coinFx.forEach(c => {
     if (c.t < 0) return;
     const k = Math.min(1, c.t / c.dur), e2 = k*k*(3-2*k);
-    const tx2 = -OFFX + VIS_W - 110/scaleF, ty2 = -OFFY + 46/scaleF;
+    const tx2 = chipW.x, ty2 = chipW.y;
     const cx2 = c.x0 + (tx2 - c.x0)*e2, cy2 = c.y0 + (ty2 - c.y0)*e2 - Math.sin(k*Math.PI)*90;
     ctx.fillStyle = '#FFC93C'; ctx.beginPath(); ctx.arc(cx2, cy2, 8, 0, Math.PI*2); ctx.fill();
     ctx.fillStyle = '#FFE9A8'; ctx.beginPath(); ctx.arc(cx2-2.5, cy2-2.5, 3, 0, Math.PI*2); ctx.fill();
@@ -1793,9 +1819,10 @@ function loop(t) {
   update(dt);
   render();
   const cEl = $('cash'), cTxt = fmt(state.cash);
+  const cCol = state.cash < 0 ? '#8A2418' : '';
+  if (cEl._col !== cCol) { cEl._col = cCol; cEl.style.color = cCol; }
   if (cEl.textContent !== cTxt) {
     cEl.textContent = cTxt;
-    cEl.style.color = state.cash < 0 ? '#FFB3A6' : '';
     cEl.classList.add('pop');
     clearTimeout(cEl._p); cEl._p = setTimeout(() => cEl.classList.remove('pop'), 130);
   }
@@ -1828,7 +1855,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) saveG
 (async function boot() {
   resize();
   const loaded = await loadGame();
-  if (loaded && typeof loaded.cash === 'number') {
+  if (loaded && typeof loaded.cash === 'number' && isFinite(loaded.cash)) {
     state = Object.assign(freshState(), loaded);
     state.ups = Object.assign(freshOffice().ups, loaded.ups || {});
     state.hires = Object.assign(freshOffice().hires, loaded.hires || {});
@@ -1838,6 +1865,8 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) saveG
     state.verts = (Array.isArray(loaded.verts) ? loaded.verts : ['bc']).filter(v => VERTS[v]);
     if (!state.verts.length) state.verts = ['bc'];
     Object.keys(HIRES).forEach(k => { state.hires[k] = Math.max(0, Math.min(HIRES[k].max, +state.hires[k] || 0)); });
+    Object.keys(UPS).forEach(k => { state.ups[k] = Math.max(0, Math.min(UPS[k].max, +state.ups[k] || 0)); });
+    state.lost = Math.max(0, loaded.lost|0);
     state.rejected = Math.max(0, loaded.rejected|0);
     state.payOn = !!loaded.payOn;
     state.earned = Math.max(0, +loaded.earned || 0);
