@@ -22,7 +22,7 @@
   body { display:flex; align-items:center; justify-content:center; }
   #wrap { position:relative; }
   canvas { display:block; touch-action:none; }
-  .hud { position:absolute; top:0; left:0; right:0; padding:calc(10px + env(safe-area-inset-top, 0px)) calc(12px + env(safe-area-inset-right, 0px)) 10px calc(12px + env(safe-area-inset-left, 0px)); display:flex; align-items:flex-start; justify-content:space-between; pointer-events:none; z-index:5; }
+  .hud { position:absolute; top:0; left:50%; transform:translateX(-50%); width:100%; padding:calc(10px + env(safe-area-inset-top, 0px)) calc(12px + env(safe-area-inset-right, 0px)) 10px calc(12px + env(safe-area-inset-left, 0px)); display:flex; align-items:flex-start; justify-content:space-between; pointer-events:none; z-index:5; }
   .chip { background:linear-gradient(#7B45A8,var(--grape)); color:#FFF3FF; border:2px solid rgba(255,255,255,0.35); border-radius:18px; padding:8px 14px; font-size:14px; font-weight:700; line-height:1.2; box-shadow:0 4px 0 var(--grape-d), 0 6px 14px rgba(0,0,0,0.28); }
   .chip small { display:block; font-size:11px; opacity:0.8; font-weight:500; }
   #cash { pointer-events:auto; cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:11px;
@@ -40,7 +40,7 @@
   .hbtn:active { transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,0.22); }
   #payChip { display:block; font-size:11.5px; font-weight:600; line-height:1.1; margin-top:1px;
     color:#8A5A06; opacity:0.92; white-space:nowrap; }
-  #lvlBar { position:absolute; left:12px; top:76px; z-index:5; display:flex; align-items:center; gap:6px;
+  #lvlBar { position:absolute; top:76px; z-index:5; display:flex; align-items:center; gap:6px;
     background:var(--shade); border-radius:15px; padding:4px 9px 4px 4px; color:#FFF3FF; font-size:11px; font-weight:700; }
   #lvlStar { position:relative; font-size:19px; line-height:1; }
   #lvlStar b { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
@@ -114,7 +114,7 @@
 <body>
 <div id="wrap">
   <canvas id="game"></canvas>
-  <div class="hud">
+  <div class="hud" id="hud">
     <button class="hbtn" id="countryChip" title="Your offices">&#127758;</button>
     <button id="cash"><svg class="coin" viewBox="0 0 40 40" aria-hidden="true">
       <circle cx="20" cy="21" r="17" fill="#B8791A"/>
@@ -166,7 +166,9 @@
 <script>
 'use strict';
 const VW = 900, VH = 1500;      // the office floor is now bigger than one screen
-const VIEW_W = 900;            // the whole floor fits across the screen - no panning
+const VIEW_W = 900;            // world units to fit across the screen width
+const VIEW_H = 1560;           // ...and down its height. The zoom fits BOTH, so the
+                               // whole floor stays visible at any window aspect ratio.
 const BG_M = 260;              // floor baked past the walls so edges never show blank
 const cv = document.getElementById('game');
 let ctx = cv.getContext('2d');
@@ -544,6 +546,7 @@ let PXR = 1, DPR = 1;
 let cssW = 390, cssH = 780;    // viewport in CSS px
 let WS = 1;                    // world units -> CSS px
 let VIS_W = VW, VIS_H = VH;    // world units currently visible
+let COL_L = 0, COL_R = 0;      // screen-space edges of the play column
 let camX = VW/2, camY = VH/2;
 function clampCam() {
   camX = VIS_W >= VW ? VW/2 : Math.max(VIS_W/2, Math.min(VW - VIS_W/2, camX));
@@ -556,7 +559,8 @@ const w2sy = y => (y - camY)*WS + cssH/2;
 function resize() {
   DPR = Math.min(devicePixelRatio||1, 2);
   cssW = Math.max(1, innerWidth); cssH = Math.max(1, innerHeight);
-  WS = cssW / VIEW_W;
+  // fit both axes: width alone blows the zoom up on short, wide windows
+  WS = Math.min(cssW / VIEW_W, cssH / VIEW_H);
   scaleF = WS;                 // kept for pointer maths elsewhere
   UI_SCALE = Math.max(1, Math.min(2, 0.78/WS));
   PXR = Math.max(0.1, DPR * WS);
@@ -564,6 +568,13 @@ function resize() {
   cv.width = Math.max(1, Math.round(cssW*DPR)); cv.height = Math.max(1, Math.round(cssH*DPR));
   cv.style.width = cssW + 'px'; cv.style.height = cssH + 'px';
   wrap.style.width = cssW + 'px'; wrap.style.height = cssH + 'px';
+  // keep the HUD over the office, not pinned to the corners of a much wider window
+  const colW = Math.min(cssW, Math.max(320, VW * WS + 40));
+  const hudEl = document.getElementById('hud');
+  if (hudEl) hudEl.style.maxWidth = colW + 'px';
+  COL_L = (cssW - colW) / 2; COL_R = COL_L + colW;
+  const lvlEl = document.getElementById('lvlBar');
+  if (lvlEl) lvlEl.style.left = (COL_L + 12) + 'px';
   clampCam(); worldTransform();
   vgCache = null; bgKey = ''; chipKey = '';
 }
@@ -1835,9 +1846,16 @@ function render() {
   const key = state.country + '|' + Math.round(PXR*100) + '|' + (state.built ? Object.keys(state.built).filter(k => state.built[k]).join('') : '');
   if (key !== bgKey) { drawStaticLayer(C); bgKey = key; }
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.fillStyle = C.wall; ctx.fillRect(0, 0, cv.width, cv.height);
+  // On a window wider than the office, everything outside the room reads as a
+  // deliberate surround rather than blank wall.
+  ctx.fillStyle = shade(C.wall, 0.42); ctx.fillRect(0, 0, cv.width, cv.height);
   worldTransform();
-  if (bgCv) { try { ctx.drawImage(bgCv, -BG_M, -BG_M, VW + BG_M*2, VH + BG_M*2); } catch(e) {} }
+  if (bgCv) {
+    const vx = -BG_M, vy = -BG_M, bw = VW + BG_M*2, bh = VH + BG_M*2;
+    ctx.fillStyle = shade(C.wall, 0.30);                       // seat the room on its surround
+    ctx.fillRect(vx - 7, vy - 7, bw + 14, bh + 14);
+    try { ctx.drawImage(bgCv, vx, vy, bw, bh); } catch(e) {}
+  }
 
 
 
@@ -2260,7 +2278,7 @@ function render() {
   screenTransform();
   ctx.font = '500 12px Fredoka, sans-serif'; ctx.textAlign = 'right';   // screen-space HUD: already in CSS px, must not scale with the world zoom
   ctx.fillStyle = 'rgba(80,55,110,0.55)';
-  ctx.fillText('Placed ' + state.placed + '   Rejected ' + (state.rejected||0) + '   Lost ' + state.lost, cssW-12, cssH-12);
+  ctx.fillText('Placed ' + state.placed + '   Rejected ' + (state.rejected||0) + '   Lost ' + state.lost, COL_R-12, cssH-12);
   worldTransform();
   const carrying = player_followers().filter(c => c.done).length;
   if (carrying) {

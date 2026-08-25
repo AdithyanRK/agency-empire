@@ -267,3 +267,38 @@ after `screenTransform()`, already in CSS pixels. It had always been slightly to
 big; at the wider zoom it grew to 22px and dominated the screen. It now uses a
 literal CSS-pixel font like the other screen-space HUD elements do. In-world
 labels still scale, which is what `UI_SCALE` is for.
+
+## Round 17 — Aspect-ratio zoom, and two stale tests (2026-08-25)
+
+A screenshot from a wide, short browser window showed the office enormously
+magnified — perhaps a fifth of it on screen. The cause was that the zoom had
+always been derived from width alone (`WS = cssW / VIEW_W`). That is harmless on
+a portrait phone and badly wrong anywhere else: at 1990x760 it gave 2.2 px per
+world unit and cropped away three quarters of the floor. `WS` now fits **both**
+axes (`min(cssW/VIEW_W, cssH/VIEW_H)`), so the whole office stays visible at any
+window shape. Phones are unaffected — width is still the binding constraint there.
+
+Fitting both axes leaves wide windows with the office as a column in the middle,
+so two things follow it now: the room sits on a darker surround that reads as
+deliberate framing rather than blank wall, and the HUD (flag, cash, settings,
+level bar) plus the footer stats are anchored to the play column instead of the
+window corners, where they had been stranding themselves hundreds of pixels from
+the game.
+
+Two intermittent test failures surfaced during this and turned out to be test
+bugs, not game bugs:
+
+- *"task did not advance after building"* — the same root cause as the screening
+  assertion in Round 15. Tutorial task 3 only completes once a candidate survives
+  the ~18% reject roll, so the following assertion inherited the same coin flip.
+  There is now a bounded `tickUntil` that waits for the outcome rather than
+  hoping a fixed tick count covers it.
+- *"fee did not drop at the client"* — asserted the fee landed within 110 units
+  of x=322, a constant from an older layout. The client actually stands at x=372
+  and bills scatter 14-66 units from where they drop, so a bill thrown rightward
+  could reach 438 and fail. It now checks against the client's real position with
+  a tolerance matching the actual scatter.
+
+Both were only visible across repeated runs; a 60-run sweep on a frozen build is
+what caught them, after a first sweep was invalidated by editing the game
+mid-flight.

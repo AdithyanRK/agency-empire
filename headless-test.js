@@ -56,6 +56,7 @@ setTimeout(async () => {
   try {
     const tick = (n, dt) => { dt = dt || 0.05; for (let i = 0; i < n; i++) { simNow += dt * 1000; update(dt); render(); } };
     const at = (x, y) => { player.x = x; player.y = y; player.trail.unshift({x, y}); };
+    const tickUntil = (cond, max, dt) => { max = max || 1200; for (let i = 0; i < max; i++) { if (cond()) return true; tick(1, dt); } return cond(); };
     const log = [];
     buildAll();   // the suite tests a finished office; the build-out has its own test
 
@@ -125,7 +126,10 @@ setTimeout(async () => {
     at(clientSlots[0].x, clientSlots[0].y - 40); tick(24);
     const paidHere = bills.length ? bills[0].x : null;
     if (!bills.length && state.cash <= 0) throw new Error('walking a candidate to a client did not pay');
-    if (paidHere !== null && Math.abs(paidHere - 322) > 110) throw new Error('fee did not drop at the client');
+    // bills scatter 14-66 units from where they drop, so anything past 70 is the wrong place
+    if (paidHere !== null && Math.abs(paidHere - clientSlots[0].x) > 70)
+      throw new Error('fee did not drop at the client: bill at ' + Math.round(paidHere) +
+                      ', client at ' + Math.round(clientSlots[0].x));
     log.push(['fee dropped at the client', 'ok']);
 
     at(clientSlots[0].x, clientSlots[0].y - 30); tick(60);
@@ -703,6 +707,10 @@ setTimeout(async () => {
     if (!screened) throw new Error('screening still dead after building the desk: queue ' +
       qBefore + '->' + deskQueue.length + ', rejected ' + rejBefore + '->' + state.rejected);
     log.push(['build-out', 'desk ' + fmt(dCost) + ', screening starts only once built']);
+    // the next checks need a candidate through screening; the reject roll makes the
+    // wait variable, so wait on the outcome rather than on a tick count
+    if (!tickUntil(() => candidates.length > 0, 1500))
+      throw new Error('no candidate survived screening in 1500 ticks');
     // a pad you cannot afford does nothing
     state.cash = 0;
     at(rc(L.booth).x, rc(L.booth).y); tick(40);
