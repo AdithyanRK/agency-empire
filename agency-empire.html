@@ -31,7 +31,7 @@
   .hbtns { display:flex; gap:8px; }
   .hbtn { pointer-events:auto; width:42px; height:42px; border-radius:50%; border:none; background:var(--shade); backdrop-filter:blur(3px); color:#FFF6E4; font-size:17px; font-weight:600; cursor:pointer; font-family:inherit; box-shadow:0 3px 0 rgba(0,0,0,0.22); }
   .hbtn:active { transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,0.22); }
-  #objective { font-family:'Titan One',cursive; letter-spacing:0.3px; position:absolute; top:112px; left:50%; transform:translateX(-50%); background:var(--paper); color:var(--ink); padding:9px 18px; border-radius:16px; font-size:14px; font-weight:600; z-index:5; pointer-events:none; white-space:nowrap; box-shadow:0 4px 0 rgba(59,50,39,0.18), 0 6px 14px rgba(0,0,0,0.2); }
+  #objective { font-family:'Titan One',cursive; letter-spacing:0.2px; font-size:13px; max-width:86%; white-space:normal; line-height:1.25; position:absolute; top:112px; left:50%; transform:translateX(-50%); background:var(--paper); color:var(--ink); padding:9px 16px; border-radius:16px; font-weight:600; z-index:5; text-align:center; pointer-events:none; box-shadow:0 4px 0 rgba(59,50,39,0.18), 0 6px 14px rgba(0,0,0,0.2); }
   #toast { position:absolute; bottom:calc(26px + env(safe-area-inset-bottom, 0px)); left:50%; transform:translateX(-50%); background:var(--shade); backdrop-filter:blur(3px); color:#FFF6E4; padding:11px 20px; border-radius:16px; font-size:14px; font-weight:500; z-index:8; pointer-events:none; opacity:0; transition:opacity 0.3s, transform 0.3s; box-shadow:0 4px 0 rgba(0,0,0,0.2); }
   .ov { position:absolute; inset:0; background:rgba(20,16,10,0.5); z-index:10; display:none; align-items:flex-end; justify-content:center; }
   .ov.show { display:flex; }
@@ -70,6 +70,16 @@
   .mbtn.pri { background:linear-gradient(#6BC47A,var(--buy)); color:#fff; box-shadow:0 3px 0 var(--buy-d); }
   .mbtn.sec { background:linear-gradient(#F3E7FA,#E3D0F0); color:var(--ink); box-shadow:0 3px 0 #C9B0DE; }
   .mbtn:active { transform:translateY(2px); box-shadow:none; }
+  #splash { position:absolute; inset:0; z-index:20; display:flex; align-items:center; justify-content:center;
+    background:radial-gradient(circle at 50% 34%, #7B45A8, #2B1440 74%); padding:24px; text-align:center; }
+  #splash.gone { display:none; }
+  .spcard { width:100%; max-width:340px; display:flex; flex-direction:column; gap:11px; }
+  .sptitle { font-family:'Titan One',cursive; font-size:40px; line-height:0.98; color:#FFD23F; letter-spacing:1px;
+    text-shadow:0 4px 0 #B4700D, 0 8px 18px rgba(0,0,0,0.45); margin-bottom:2px; }
+  .sptitle span { display:block; color:#FFF3FF; text-shadow:0 4px 0 #6A2FA0, 0 8px 18px rgba(0,0,0,0.45); }
+  .spsub { color:#E8D6F6; font-size:15px; font-weight:600; margin-bottom:14px; }
+  .spbtn { padding:15px; font-size:16px; }
+  #spPlay { font-family:'Titan One',cursive; font-size:20px; padding:17px; letter-spacing:0.5px; }
   @media (prefers-reduced-motion: reduce) { #cash, #toast, .buy, .mbtn, .closeb, .hbtn { transition:none; } }
 </style>
 </head>
@@ -86,6 +96,16 @@
   </div>
   <div id="objective"></div>
   <div id="toast"></div>
+  <div id="splash">
+    <div class="spcard">
+      <div class="sptitle">AGENCY<span>EMPIRE</span></div>
+      <div class="spsub">Run the agency. Place the people. Take the fee.</div>
+      <button class="mbtn pri spbtn" id="spPlay">Play</button>
+      <button class="mbtn sec spbtn" id="spTour">How to play</button>
+      <button class="mbtn sec spbtn" id="spNew">New game</button>
+      <button class="mbtn sec spbtn" id="spSnd">Sound: on</button>
+    </div>
+  </div>
   <div class="ov" id="panel">
     <div class="card t-team" id="panelCard">
       <div class="handle"></div>
@@ -233,6 +253,51 @@ let player, printerStack, deskQueue, screenT, candidates, clients, bills, parts,
 let emp, clientT, printT, cashEverPicked, panelLatch, exitLatch, hintIT, hintHC;
 let padProg, rushOn, rushLeft, promoCd, shredA = 0, dt2 = 0.016, payFlash = 0, payLast = 0, gameOver = false;
 let rushBank = 0;  // promo-rush client spawns held back by a full lobby
+let tourOn = false, tourStep = 0, tourT = 0;
+function tourStops() {
+  return [
+    { r:L.printer, txt:'Grab resumes from the job board' },
+    { r:L.desk,    txt:'Drop them here to screen candidates' },
+    { r:L.zone,    txt:'Screened people wait here' },
+    { r:L.booth,   txt:'Walk one into a room and stay to interview' },
+    { r:BENCH,     txt:'Interviewed people wait on the bench' },
+    { r:L.lobby,   txt:'Introduce them to a client and take the fee' },
+    { r:L.mgr,     txt:'Hire staff and buy upgrades at the manager desk' },
+  ];
+}
+function startTour() { tourOn = true; tourStep = 0; tourT = 0; }
+function nextTourStep() {
+  tourStep++; tourT = 0;
+  if (tourStep >= tourStops().length) { tourOn = false; toast('You are all set - go place someone'); }
+}
+function drawTour() {
+  const stops = tourStops(), s = stops[tourStep];
+  if (!s) { tourOn = false; return; }
+  const r = s.r, pad = 14, pu = (Math.sin(performance.now()/300)+1)/2;
+  ctx.save();
+  // dim everything around the stop with four bands (rr() starts its own path,
+  // so an even-odd punch-out would invert the mask)
+  const hx = r.x-pad, hy = r.y-pad, hw = r.w+pad*2, hh = r.h+pad*2;
+  const vx0 = -OFFX, vy0 = -OFFY;
+  ctx.fillStyle = 'rgba(43,20,64,0.72)';
+  ctx.fillRect(vx0, vy0, VIS_W, hy - vy0);
+  ctx.fillRect(vx0, hy + hh, VIS_W, (vy0 + VIS_H) - (hy + hh));
+  ctx.fillRect(vx0, hy, hx - vx0, hh);
+  ctx.fillRect(hx + hw, hy, (vx0 + VIS_W) - (hx + hw), hh);
+  ctx.strokeStyle = 'rgba(255,210,63,' + (0.65 + 0.35*pu) + ')'; ctx.lineWidth = 5;
+  rr(hx, hy, hw, hh, 20); ctx.stroke();
+  const below = r.y + r.h + 150 < -OFFY + VIS_H;
+  const cy = below ? r.y + r.h + pad + 26 : r.y - pad - 96;
+  const cw = Math.min(VIS_W - 60, 470), cx = VW/2 - cw/2;
+  ctx.fillStyle = '#FFF6FB'; rr(cx, cy, cw, 78, 18); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,210,63,0.9)'; ctx.lineWidth = 3; rr(cx, cy, cw, 78, 18); ctx.stroke();
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#5B2A86'; ctx.font = F(700, 15);
+  ctext(s.txt, VW/2, cy + 32);
+  ctx.fillStyle = 'rgba(90,60,130,0.75)'; ctx.font = F(600, 12);
+  ctext('tap to continue   \u00b7   ' + (tourStep+1) + '/' + stops.length, VW/2, cy + 58);
+  ctx.restore();
+}
 let coinFx = [];
 const candSorted = [];   // reused scratch buffer for depth sorting
 let chipPos = null, chipKey = '';
@@ -332,6 +397,8 @@ const monthlyDue = () => payrollTotal() + subsTotal();
 const trading = () => state.tut >= TUT.length || state.placed >= 3;
 const START_CASH = 1000;
 const PAY_GATE = () => 5000 * mul();
+const INTERVIEW_REJECT = 0.07;                 // rare: most interviews still pass
+const REJECT_FLOOR = () => 1000 * mul();       // below this the interview never rejects
 const RUIN = () => 10000 * mul();
 const payrollOn = () => !!state.payOn;
 
@@ -395,6 +462,7 @@ function toWorld(e) {
   return { x:(p.clientX - r.left)/scaleF - OFFX, y:(p.clientY - r.top)/scaleF - OFFY };
 }
 function pDown(e) {
+  if (tourOn) { ensureAC(); nextTourStep(); e.preventDefault(); return; }
   try { cv.focus(); } catch(err) {}
   ensureAC();
   if (AC && AC.state === 'suspended') AC.resume();
@@ -856,6 +924,7 @@ function update(dt) {
   if (keys['a']||keys['arrowleft']) mx -= 1;
   if (keys['d']||keys['arrowright']) mx += 1;
   if (joy && (Math.abs(joy.v.x)>8 || Math.abs(joy.v.y)>8)) { mx = joy.v.x/64; my = joy.v.y/64; }
+  if (tourOn) { mx = 0; my = 0; tourT += dt; if (tourT > 4.5) nextTourStep(); }
   const mm = Math.hypot(mx,my);
   player.moving = mm > 0.05 && !panelOpen && !modalOpen;
   if (player.moving || joy) idleT = 0; else idleT += dt;
@@ -995,6 +1064,18 @@ function update(dt) {
       const staffed = !!roomRec[c.bslot];
       c.iT = (c.iT||0) + dt * (isPlayerRoom ? 2.2 : staffed ? 1 : 0.2);
       if (c.iT >= interviewTime()) {
+        // interviews occasionally surface a mismatch - but never kick a struggling player
+        if (state.cash >= REJECT_FLOOR() && Math.random() < INTERVIEW_REJECT) {
+          state.rejected = (state.rejected||0) + 1;
+          floatTxt(c.x, c.y-52, 'Not a fit', '#B03A2E');
+          beep(240, 0.08, 'square', 0.05);
+          for (let i=0;i<5;i++) {
+            const a = Math.random()*Math.PI*2, sp = 30+Math.random()*70;
+            parts.push({ x:c.x, y:c.y-20, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp-60, life:0.45+Math.random()*0.25, col:['#FFFFFF','#E0B4AC'][i%2], sz:3+Math.random()*2 });
+          }
+          c.st = 'expire';
+          return;
+        }
         const rs = freeReadySpot();
         if (rs < 0) { c.iT = interviewTime(); }
         else {
@@ -1519,20 +1600,6 @@ function drawStaticLayer(C) {
   ctx.fillStyle = C.wall; ctx.fillRect(vx, vy, VIS_W, 96 - vy);
   ctx.fillStyle = shade(C.wall, 0.78); ctx.fillRect(vx, 86, VIS_W, 12);
   ctx.fillStyle = 'rgba(0,0,0,0.1)'; ctx.fillRect(vx, 98, VIS_W, 6);
-  for (let i=0;i<3;i++) {
-    const wx = 268 + i*140;
-    ctx.fillStyle = 'rgba(255,255,255,0.2)'; rr(wx, 18, 96, 58, 9); ctx.fill();
-    ctx.fillStyle = C.sky || 'rgba(150,205,230,0.55)'; rr(wx+5, 23, 86, 48, 6); ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.32)';
-    ctx.beginPath(); ctx.moveTo(wx+5, 71); ctx.lineTo(wx+38, 23); ctx.lineTo(wx+56, 23); ctx.lineTo(wx+23, 71); ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.45)'; ctx.lineWidth = 2.5; rr(wx, 18, 96, 58, 9); ctx.stroke();
-  }
-  ctx.fillStyle = 'rgba(255,255,255,0.9)';
-  ctx.font = '700 22px \'Baloo 2\''; ctx.textAlign = 'left';
-  ctx.fillText('HYRING', 22, 46);
-  ctx.fillStyle = 'rgba(255,255,255,0.72)';
-  ctx.font = '500 14px \'Baloo 2\'';
-  ctx.fillText(C.name + ' office', 22, 68);
   ctx.fillStyle = 'rgba(120,100,70,0.1)';
   rr(L.door.x+L.door.w+6, L.door.y+34, 62, 44, 8); ctx.fill();
   ctx = prev;
@@ -1908,6 +1975,8 @@ function render() {
   }
   ctx.fillStyle = vgCache; ctx.fillRect(-OFFX, -OFFY, VIS_W, VIS_H);
 
+  if (tourOn) drawTour();
+
   if (joy) {
     ctx.globalAlpha = 0.3;
     ctx.strokeStyle = '#FFF6E4'; ctx.lineWidth = 5;
@@ -1958,7 +2027,7 @@ function loop(t) {
     if (pc._bg !== pbg) { pc._bg = pbg; pc.style.background = pbg; }
   }
   const ob = $('objective');
-  if (state.tut < TUT.length) { ob.style.display = 'block'; ob.textContent = TUT[state.tut].txt; }
+  if (state.tut < TUT.length && !tourOn) { ob.style.display = 'block'; ob.textContent = TUT[state.tut].txt; }
   else ob.style.display = 'none';
   if (panelOpen && every('pnl', 0.5)) {
     panelBtns.forEach(x => { x.el.disabled = state.cash < x.cost; });
@@ -2018,10 +2087,31 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) saveG
   applyHud();
   cv.tabIndex = 0;
   setTimeout(() => { try { cv.focus(); } catch(e) {} }, 150);
-  try {
-    if (matchMedia('(pointer: coarse)').matches) toast('Drag anywhere to walk');
-    else toast('Move with WASD or the arrow keys');
-  } catch(e) {}
+  const sp = $('splash');
+  if (sp && sp.classList) {
+    const started = state.placed > 0 || state.tut > 0;
+    const play = $('spPlay'), snd = $('spSnd');
+    if (play) play.textContent = started ? 'Continue' : 'Play';
+    const setSnd = () => { if (snd) snd.textContent = 'Sound: ' + (state.mute ? 'off' : 'on'); };
+    setSnd();
+    const leave = fn => { ensureAC(); sp.classList.add('gone'); if (fn) fn(); };
+    if (play) play.onclick = () => leave(() => {
+      try { if (matchMedia('(pointer: coarse)').matches) toast('Drag anywhere to walk'); } catch(e) {}
+    });
+    const tour = $('spTour');
+    if (tour) tour.onclick = () => leave(startTour);
+    const nw = $('spNew');
+    if (nw) nw.onclick = () => {
+      showModal('Start a new game?', 'This wipes your current save.',
+        [ { label:'Cancel' },
+          { label:'Yes, new game', pri:true, fn: () => {
+              state = freshState(); resetFloor(); gameOver = false;
+              cashEverPicked = false; hintIT = false; hintHC = false;
+              applyHud(); saveGame(); leave(startTour);
+            } } ]);
+    };
+    if (snd) snd.onclick = () => { state.mute = !state.mute; setSnd(); $('sndBtn').textContent = state.mute ? '\u{1F507}' : '\u{1F50A}'; saveGame(); };
+  }
   requestAnimationFrame(loop);
 })();
 </script>

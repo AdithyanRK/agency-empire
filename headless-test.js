@@ -168,6 +168,7 @@ setTimeout(async () => {
     panelOpen = false; at(rc(L.booth).x, L.booth.y+210); tick(4);
 
     deskQueue.length = 0; candidates.length = 0; clients.length = 0; clientT = 9999;
+    state.cash = 0; // below REJECT_FLOOR, so interviews never reject during this check
     state.hires.rec = 1; state.hires.am = 0; syncEmp();
     for (let i = 0; i < 3; i++)
       candidates.push({ x:boothSlots[i].x, y:boothSlots[i].y, vert:'bc', st:'booth', bslot:i, iT:0, owner:null, idx:0, bob:0 });
@@ -617,6 +618,33 @@ setTimeout(async () => {
     const drifted = candidates.filter(c => c.st === 'booth').length;
     if (drifted < 2) throw new Error('drift valve still globally throttled: only ' + drifted + ' moved in 2s');
     log.push(['drift valve per-candidate', drifted + ' candidates seated in 2s']);
+    state = freshState(); resetFloor(); modalOpen = false;
+
+    // interviews can rarely reject - but never while the player is under the floor
+    const runInterviews = (cash, n) => {
+      state = freshState(); resetFloor(); state.tut = TUT.length; gameOver = false; modalOpen = false;
+      state.payOn = false; clientT = 9999; clients.length = 0; candidates.length = 0;
+      state.cash = cash; state.ups.ready = UPS.ready.max;
+      let rejected = 0, done = 0;
+      for (let i = 0; i < n; i++) {
+        candidates.length = 0;
+        candidates.push({ x:boothSlots[0].x, y:boothSlots[0].y, vert:'bc', st:'booth', bslot:0, iT:interviewTime(), owner:null, idx:0, bob:0 });
+        const before = state.rejected || 0;
+        for (let k = 0; k < 6 && candidates.length && candidates[0].st === 'booth'; k++) { simNow += 50; update(0.05); render(); }
+        if ((state.rejected||0) > before) rejected++;
+        else if (candidates[0] && candidates[0].done) done++;
+        state.cash = cash; // hold the balance steady across trials
+      }
+      return { rejected, done };
+    };
+    const poor = runInterviews(0, 60);
+    if (poor.rejected !== 0) throw new Error('a broke player was rejected ' + poor.rejected + ' times');
+    if (poor.done === 0) throw new Error('no interviews completed in the broke run');
+    const rich = runInterviews(20000, 400);
+    if (rich.rejected === 0) throw new Error('rich player never saw a post-interview rejection');
+    const rate = rich.rejected / 400;
+    if (rate > 0.2) throw new Error('post-interview rejection is meant to be rare, got ' + (rate*100).toFixed(0) + '%');
+    log.push(['post-interview rejection', '0% under ' + fmt(REJECT_FLOOR()) + ', ' + (rate*100).toFixed(0) + '% above']);
     state = freshState(); resetFloor(); modalOpen = false;
 
     // software subscriptions are charged with payroll and can be cancelled
