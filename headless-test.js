@@ -58,18 +58,18 @@ setTimeout(async () => {
     const at = (x, y) => { player.x = x; player.y = y; player.trail.unshift({x, y}); };
     const log = [];
 
-    at(196, 172); tick(30);
+    at(rc(L.printer).x+55, rc(L.printer).y); tick(30);
     log.push(['carrying after printer', player.carrying.length]);
     if (!player.carrying.length) throw new Error('pickup failed');
 
     player.carrying.push('bc','bc');
-    at(50, 170); tick(20);
+    at(rc(L.shred).x, rc(L.shred).y); tick(20);
     log.push(['carrying after shredder', player.carrying.length]);
     if (player.carrying.length !== 0) throw new Error('shredder did not clear the stack');
     printerStack.push('bc');
-    at(196, 172); tick(20);
+    at(rc(L.printer).x+55, rc(L.printer).y); tick(20);
     if (!player.carrying.length) throw new Error('re-pickup after shred failed');
-    at(598, 206); tick(24);
+    at(rc(L.desk).x, rc(L.desk).y+30); tick(24);
     log.push(['deskQueue', deskQueue.length]);
     if (!deskQueue.length && !candidates.length) throw new Error('deposit failed');
 
@@ -80,9 +80,9 @@ setTimeout(async () => {
     if (!candidates.some(c => c.st === 'wait')) throw new Error('screening produced nothing');
     state.ups.quality = 0;
 
-    at(610, 350); tick(20);
+    at(rc(L.zone).x, rc(L.zone).y); tick(20);
     if (!player_followers().length) throw new Error('cannot pick up a screened candidate');
-    at(520, 524); tick(24);
+    at(rc(L.booth).x, rc(L.booth).y); tick(24);
     if (!candidates.some(c => c.st === 'booth')) throw new Error('cannot deliver a candidate to the rooms');
     log.push(['led candidate to rooms', 'ok']);
     state.hires.rec = 0; syncEmp();
@@ -93,7 +93,7 @@ setTimeout(async () => {
     const awayT = candidates.filter(c=>c.st==='booth').reduce((s,c)=>Math.max(s,c.iT||0), 0);
     if (awayT > 0.5) throw new Error('an unattended room ran too fast: ' + awayT.toFixed(2));
     candidates.forEach(c => { if (c.st==='booth') c.iT = 0; });
-    at(520, 524);
+    at(rc(L.booth).x, rc(L.booth).y);
     let meT = 0, meDone = false;
     for (let i = 0; i < 60; i++) {
       simNow += 50; update(0.05); render();
@@ -105,7 +105,7 @@ setTimeout(async () => {
     if (!candidates.some(c => c.st === 'booth'))
       candidates.push({ x:boothSlots[0].x, y:boothSlots[0].y, vert:'bc', st:'booth', bslot:0, iT:0, owner:null, idx:0, bob:0 });
     const placedBefore = state.placed;
-    at(520, 524);
+    at(rc(L.booth).x, rc(L.booth).y);
     let didInterview = false;
     for (let i = 0; i < 200; i++) { simNow += 50; update(0.05); render(); if (candidates.some(c => c.done)) didInterview = true; }
     if (!didInterview && state.placed === placedBefore) throw new Error('interview never completed');
@@ -113,7 +113,7 @@ setTimeout(async () => {
     clients.length = 0; clientT = 9999;
     if (!candidates.some(c => c.st === 'ready'))
       candidates.push({ x:340, y:668, vert:'bc', st:'ready', rspot:0, owner:null, idx:0, bob:0, readyT:0, done:true });
-    at(538, 668); tick(24);
+    at(BENCH.x+BENCH.w/2, BENCH.y+BENCH.h/2); tick(24);
     if (!player_followers().length) throw new Error('ready pickup failed');
 
     modalOpen = false; panelOpen = false;
@@ -121,23 +121,29 @@ setTimeout(async () => {
     candidates.length = 0;
     candidates.push({ x:600, y:900, vert:'bc', st:'follow', owner:'p', idx:0, bob:0, done:true });
     clients.push({ x:316, y:992, vert:'bc', need:1, slot:0, patience:99, maxP:99, st:'wait', bob:0, total:1 });
-    at(320, 940); tick(24);
+    at(L.lobby.x+80, L.lobby.y+40); tick(24);
     const paidHere = bills.length ? bills[0].x : null;
     if (!bills.length && state.cash <= 0) throw new Error('walking a candidate to a client did not pay');
     if (paidHere !== null && Math.abs(paidHere - 322) > 110) throw new Error('fee did not drop at the client');
     log.push(['fee dropped at the client', 'ok']);
 
-    at(316, 1010); tick(60);
+    at(clientSlots[0].x, clientSlots[0].y+30); tick(60);
     log.push(['cash after scoop', Math.floor(state.cash), 'chain', state.chain]);
     if (state.cash <= 0) throw new Error('cash not collected');
     if (chainMul() !== 1) throw new Error('streak multiplier should be removed');
 
     state.cash = 14000; clientT = 4;
-    at(147, 502); tick(10);
+    at(rc(L.mgr).x, rc(L.mgr).y); tick(10);
     if (!panelOpen) throw new Error('manager desk did not open');
     const hireBtn = n => {
       const row = els['panelRows'].children.find(r => r._inner && r._inner.includes('>' + n + '<'));
-      return row && row.children[0];
+      if (!row) return null;
+      const bs = row.children.filter(c => c.textContent !== '\u2212'); // skip the "let go" control
+      return bs[bs.length - 1];
+    };
+    const fireBtn = n => {
+      const row = els['panelRows'].children.find(r => r._inner && r._inner.includes('>' + n + '<'));
+      return row && row.children.find(c => c.textContent === '\u2212');
     };
     ['Sourcer','Sourcer','Recruiter','Account manager','Finance exec'].forEach(n => {
       const b = hireBtn(n);
@@ -145,10 +151,21 @@ setTimeout(async () => {
       b.onclick();
     });
     log.push(['hires', JSON.stringify(state.hires)]);
+    {
+      // firing trims headcount and payroll
+      const before = state.hires.sourcer, wagesBefore = payrollTotal();
+      const fb = fireBtn('Sourcer');
+      if (!fb) throw new Error('no let-go control for a hired role');
+      fb.onclick();
+      if (state.hires.sourcer !== before - 1) throw new Error('firing did not reduce headcount');
+      if (payrollTotal() >= wagesBefore) throw new Error('firing did not reduce payroll');
+      log.push(['fire staff', 'sourcer ' + before + ' -> ' + state.hires.sourcer + ', wages ' + fmt(wagesBefore) + ' -> ' + fmt(payrollTotal())]);
+      hireBtn('Sourcer').onclick(); // restore for the tests that follow
+    }
     if (state.hires.sourcer !== 2) throw new Error('multi-hire from panel failed');
     if (emp.sourcers.length !== 2) throw new Error('units not synced: ' + emp.sourcers.length);
     if (!state.hires.rec || !state.hires.am || !state.hires.fin) throw new Error('hiring failed');
-    panelOpen = false; at(320, 680); tick(4);
+    panelOpen = false; at(rc(L.booth).x, L.booth.y+210); tick(4);
 
     deskQueue.length = 0; candidates.length = 0; clients.length = 0; clientT = 9999;
     state.hires.rec = 1; state.hires.am = 0; syncEmp();
@@ -207,7 +224,7 @@ setTimeout(async () => {
     state.payOn = false; state.cash = 0;
     spawnBills(80, 500, 930);
     const cashB = state.cash;
-    at(150, 212); tick(200);
+    at(rc(L.printer).x+55, rc(L.printer).y); tick(200);
     if (state.cash <= cashB) throw new Error('walking finance exec never banked the fees');
     log.push(['fin banked', Math.floor(state.cash - cashB)]);
 
@@ -227,7 +244,7 @@ setTimeout(async () => {
     log.push(['idle office trickle', 'placed ' + (state.placed - placedPre) + ', net ' + Math.round(state.cash)]);
 
     state.cash = 5000; // the idle run can end negative now; this test checks panel wiring, not affordability
-    at(147, 502); tick(10);
+    at(rc(L.mgr).x, rc(L.mgr).y); tick(10);
     log.push(['panel rows', els['panelRows'].children.length]);
     if (!els['panelRows'].children.length) throw new Error('panel empty');
     const speedRow = els['panelRows'].children.find(r => r._inner && r._inner.includes('Founder hustle'));
@@ -242,7 +259,7 @@ setTimeout(async () => {
     if (!state.verts.includes('it')) throw new Error('IT unlock failed');
 
     state.cash = COUNTRIES[0].moveCost + 3000; panelOpen = false;
-    at(723, 97); tick(10);
+    at(rc(L.exit).x, rc(L.exit).y); tick(10);
     const moveBtn = els['mBtns'].children.find(b => b.className.includes('pri'));
     if (!moveBtn) throw new Error('country modal did not open');
     moveBtn.onclick();
@@ -300,7 +317,7 @@ setTimeout(async () => {
     const cl1 = { x:316, y:992, vert:'bc', need:2, slot:0, patience:999, maxP:999, st:'wait', bob:0, total:2 };
     clients.push(cl1);
     candidates.push({ x:600, y:900, vert:'bc', st:'follow', owner:'p', idx:0, bob:0, done:true });
-    at(320, 940);
+    at(L.lobby.x+80, L.lobby.y+40);
     for (let i = 0; i < 30; i++) { simNow += 50; update(0.05); render(); }
     const introFee = cl1.feeAcc || 0;
     if (!introFee) throw new Error('personal introduction did not pay');
@@ -415,7 +432,7 @@ setTimeout(async () => {
       return false;
     };
     function botStep(dt) {
-      let tx = 360, ty = 660;
+      let tx = BENCH.x + BENCH.w/2, ty = BENCH.y + 10;
       const fol = player_followers();
       const raw = fol.filter(c => !c.done).length, done = fol.filter(c => c.done).length;
       const waitC = candidates.filter(c => c.st === 'wait').length;
@@ -425,21 +442,21 @@ setTimeout(async () => {
       const plan = [['rec',1],['sourcer',1],['rec',2],['am',1],['fin',1],['rec',3],['sourcer',2],['am',2],['sourcer',3],['am',3],['rec',4],['am',4]];
       const next = plan.find(p => state.hires[p[0]] === p[1]-1 && (p[0] !== 'rec' || state.hires.rec < boothCap()-1));
       const need = null;
-      if (state.tut === TUT.length - 1) { tx = 147; ty = 502; }
+      if (state.tut === TUT.length - 1) { tx = rc(L.mgr).x; ty = rc(L.mgr).y; }
       else if (trading() && !rushOn && promoCd <= 0 && state.cash > promoCost()*4 && state.cash > monthlyDue()*2) { tx = L.banner.x + L.banner.w/2; ty = L.banner.y + L.banner.h/2; }
       else if (next && aff(next[0])) { state.cash -= hireCost(next[0]); state.hires[next[0]]++; syncEmp(); }
       else if (!state.hires.fin && bills.length) { tx = bills[0].x; ty = bills[0].y; }
       else if (done > 0) {
         const tgt = clients.find(cl => cl.st === 'wait' && cl.need > 0);
-        if (tgt) { tx = tgt.x; ty = tgt.y - 40; } else { tx = 475; ty = 830; }
+        if (tgt) { tx = tgt.x; ty = tgt.y - 40; } else { tx = L.lobby.x + L.lobby.w/2; ty = L.lobby.y - 40; }
       }
 
-      else if (readyC > 0 && fol.length < followCap()) { tx = 538; ty = 668; }
-      else if (raw > 0) { tx = 520; ty = 524; }
-      else if (candidates.some(c => c.st === 'booth' && !roomRec[c.bslot] && c.bslot >= recRooms())) { tx = 520; ty = 524; }
-      else if (waitC > 0 && fol.length < followCap()) { tx = 610; ty = 350; }
-      else if (!state.hires.sourcer && player.carrying.length > 0) { tx = 598; ty = 206; }
-      else if (!state.hires.sourcer && printerStack.length > 0 && player.carrying.length < carryCap()) { tx = 196; ty = 172; }
+      else if (readyC > 0 && fol.length < followCap()) { tx = BENCH.x + BENCH.w/2; ty = BENCH.y + BENCH.h/2; }
+      else if (raw > 0) { tx = rc(L.booth).x; ty = rc(L.booth).y; }
+      else if (candidates.some(c => c.st === 'booth' && !roomRec[c.bslot] && c.bslot >= recRooms())) { tx = rc(L.booth).x; ty = rc(L.booth).y; }
+      else if (waitC > 0 && fol.length < followCap()) { tx = rc(L.zone).x; ty = rc(L.zone).y; }
+      else if (!state.hires.sourcer && player.carrying.length > 0) { tx = rc(L.desk).x; ty = rc(L.desk).y + 30; }
+      else if (!state.hires.sourcer && printerStack.length > 0 && player.carrying.length < carryCap()) { tx = rc(L.printer).x + 55; ty = rc(L.printer).y; }
       else if (bills.length) { tx = bills[0].x; ty = bills[0].y; }
 
       const d = Math.hypot(tx - player.x, ty - player.y);
@@ -528,7 +545,7 @@ setTimeout(async () => {
     Object.keys(HIRES).forEach(k => { state.hires[k] = HIRES[k].max; });
     Object.keys(UPS).forEach(k => { state.ups[k] = UPS[k].max; });
     state.verts = ['bc','it','hc']; syncEmp();
-    at(320, 680);
+    at(rc(L.booth).x, L.booth.y+210);
     for (let i = 0; i < 9000; i++) { simNow += 50; update(0.05); render(); }
     let mCands = 0, mWait = 0, mTicks = 0, cashStart = state.cash;
     for (let i = 0; i < 3000; i++) { simNow += 50; update(0.05); render(); mCands += candidates.length; mWait += clients.filter(c=>c.st==='wait').length; mTicks++; }
@@ -602,6 +619,36 @@ setTimeout(async () => {
     log.push(['drift valve per-candidate', drifted + ' candidates seated in 2s']);
     state = freshState(); resetFloor(); modalOpen = false;
 
+    // software subscriptions are charged with payroll and can be cancelled
+    state = freshState(); resetFloor(); state.tut = TUT.length; modalOpen = false; gameOver = false;
+    state.placed = 60; state.cash = 50000; state.payOn = true;
+    if (subsTotal() !== 0) throw new Error('a fresh office should owe no software fees');
+    state.ups.screen = 2; state.ups.aiint = 1;
+    const subs1 = subsTotal();
+    if (subs1 <= 0) throw new Error('software levels did not create a subscription cost');
+    if (monthlyDue() !== payrollTotal() + subs1) throw new Error('monthly bill does not include software');
+    if (subs1 > payrollTotal() + 200) throw new Error('software fees are meant to be small');
+    panelOpen = false; at(rc(L.mgr).x, rc(L.mgr).y); tick(10);
+    const subRow = els['panelRows'].children.find(r => r._inner && r._inner.includes('AI resume screening'));
+    const cancel = subRow && subRow.children.find(c => c.textContent === '\u2212');
+    if (!cancel) throw new Error('no cancel control on a subscribed software row');
+    cancel.onclick();
+    if (state.ups.screen !== 1) throw new Error('cancelling did not drop a licence');
+    if (subsTotal() >= subs1) throw new Error('cancelling did not cut the monthly software bill');
+    log.push(['software subs', fmt(subs1) + '/mo -> ' + fmt(subsTotal()) + '/mo after cancelling one licence']);
+    panelOpen = false;
+
+    // upgrades reveal progressively instead of dumping the whole catalogue
+    state = freshState(); resetFloor(); state.tut = TUT.length; state.placed = 0; state.cash = 50000;
+    at(rc(L.mgr).x, rc(L.mgr).y); tick(10);
+    const earlyRows = els['panelRows'].children.filter(r => r.className && r.className.includes('tb-ups')).length;
+    state.placed = 60; buildPanel();
+    const lateRows = els['panelRows'].children.filter(r => r.className && r.className.includes('tb-ups')).length;
+    if (earlyRows >= lateRows) throw new Error('upgrade list did not grow with progress: ' + earlyRows + ' vs ' + lateRows);
+    if (earlyRows > 6) throw new Error('too many upgrades shown at the start: ' + earlyRows);
+    log.push(['staged upgrades', earlyRows + ' rows at 0 placements -> ' + lateRows + ' at 60']);
+    panelOpen = false; state = freshState(); resetFloor(); modalOpen = false;
+
     // regression: travelling between owned offices via the country chip must work
     state = freshState(); resetFloor(); state.tut = TUT.length; modalOpen = false; gameOver = false;
     state.placed = 20; state.offices[0] = snapshotOffice();
@@ -620,7 +667,7 @@ setTimeout(async () => {
     state = freshState(); resetFloor(); state.tut = TUT.length; modalOpen = false; gameOver = false;
     state.cash = 9000; state.placed = 42; state.hires = { sourcer:2, rec:1, am:1, fin:1 }; syncEmp();
     state.ups.printer = 3; state.payOn = true;
-    panelOpen = false; at(147, 502); tick(10);
+    panelOpen = false; at(rc(L.mgr).x, rc(L.mgr).y); tick(10);
     const resetRow = els['panelRows'].children.find(r => r._inner && r._inner.includes('Start over'));
     if (!resetRow || !resetRow.children[0]) throw new Error('no Start over option at the Manager desk');
     resetRow.children[0].onclick();
@@ -711,7 +758,7 @@ setTimeout(async () => {
     }
     if (state.country !== COUNTRIES.length - 1) throw new Error('hop chain failed');
     if (isFinite(COUNTRIES[state.country].moveCost)) throw new Error('final country should have no exit');
-    at(723, 97); tick(20);
+    at(rc(L.exit).x, rc(L.exit).y); tick(20);
     log.push(['STRESS final-country exit safe', 'ok']);
 
     // save/load roundtrip with dirty data

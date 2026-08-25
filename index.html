@@ -9,28 +9,29 @@
   <meta name="apple-mobile-web-app-title" content="Agency Empire" />
   <meta name="theme-color" content="#241F17" />
 <title>Agency Empire</title>
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Titan+One&display=swap" rel="stylesheet">
 <style>
   :root {
-    --ink:#3B3227; --ink2:#6E6250; --paper:#FFF9EE; --card:#FFFFFF;
-    --line:#EFE4CC; --gold:#FFC93C; --gold-d:#D9A31B; --gold-ink:#7A5A08;
-    --buy:#58B368; --buy-d:#3E8E4A; --danger:#E25C4A; --shade:rgba(59,50,39,0.55);
+    --ink:#3A2358; --ink2:#7A5E9B; --paper:#FFF6FB; --card:#FFFFFF;
+    --line:#EBD9F2; --gold:#FFD23F; --gold-d:#E0961A; --gold-ink:#7A4A05;
+    --buy:#3FBF4F; --buy-d:#2A8C39; --danger:#F0483E; --shade:rgba(58,35,88,0.62);
+    --grape:#5B2A86; --grape-d:#3A1A5C;
   }
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html,body { height:100%; overflow:hidden; background:#241F17; font-family:'Fredoka',system-ui,sans-serif; }
+  html,body { height:100%; overflow:hidden; background:#2B1440; font-family:'Baloo 2',system-ui,sans-serif; }
   body { display:flex; align-items:center; justify-content:center; }
   #wrap { position:relative; }
   canvas { display:block; touch-action:none; }
   .hud { position:absolute; top:0; left:0; right:0; padding:calc(10px + env(safe-area-inset-top, 0px)) calc(12px + env(safe-area-inset-right, 0px)) 10px calc(12px + env(safe-area-inset-left, 0px)); display:flex; align-items:flex-start; justify-content:space-between; pointer-events:none; z-index:5; }
-  .chip { background:var(--shade); backdrop-filter:blur(3px); color:#FFF6E4; border-radius:16px; padding:8px 13px; font-size:14px; font-weight:600; line-height:1.2; box-shadow:0 3px 0 rgba(0,0,0,0.18); }
+  .chip { background:linear-gradient(#7B45A8,var(--grape)); color:#FFF3FF; border:2px solid rgba(255,255,255,0.35); border-radius:18px; padding:8px 14px; font-size:14px; font-weight:700; line-height:1.2; box-shadow:0 4px 0 var(--grape-d), 0 6px 14px rgba(0,0,0,0.28); }
   .chip small { display:block; font-size:11px; opacity:0.8; font-weight:500; }
-  #cash { display:flex; align-items:center; gap:8px; font-size:23px; font-weight:700; color:var(--gold-ink); background:linear-gradient(#FFE9A8,#FFD75E); padding:7px 18px 7px 12px; border-radius:22px; box-shadow:0 4px 0 var(--gold-d), 0 6px 12px rgba(0,0,0,0.25); transition:transform 0.12s; }
+  #cash { display:flex; align-items:center; gap:8px; font-family:'Titan One',cursive; font-size:23px; letter-spacing:0.4px; color:var(--gold-ink); background:linear-gradient(#FFF3C4,#FFC93C); padding:7px 18px 7px 12px; border-radius:24px; border:2.5px solid #FFFDF0; box-shadow:0 4px 0 var(--gold-d), 0 7px 16px rgba(0,0,0,0.3); transition:transform 0.12s; }
   #cash.pop { transform:scale(1.08); }
   #cash::before { content:''; width:22px; height:22px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #FFE9A8, #E8B93C 60%, #C9922A); box-shadow:inset 0 -2px 0 rgba(0,0,0,0.15); }
   .hbtns { display:flex; gap:8px; }
   .hbtn { pointer-events:auto; width:42px; height:42px; border-radius:50%; border:none; background:var(--shade); backdrop-filter:blur(3px); color:#FFF6E4; font-size:17px; font-weight:600; cursor:pointer; font-family:inherit; box-shadow:0 3px 0 rgba(0,0,0,0.22); }
   .hbtn:active { transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,0.22); }
-  #objective { position:absolute; top:112px; left:50%; transform:translateX(-50%); background:var(--paper); color:var(--ink); padding:9px 18px; border-radius:16px; font-size:14px; font-weight:600; z-index:5; pointer-events:none; white-space:nowrap; box-shadow:0 4px 0 rgba(59,50,39,0.18), 0 6px 14px rgba(0,0,0,0.2); }
+  #objective { font-family:'Titan One',cursive; letter-spacing:0.3px; position:absolute; top:112px; left:50%; transform:translateX(-50%); background:var(--paper); color:var(--ink); padding:9px 18px; border-radius:16px; font-size:14px; font-weight:600; z-index:5; pointer-events:none; white-space:nowrap; box-shadow:0 4px 0 rgba(59,50,39,0.18), 0 6px 14px rgba(0,0,0,0.2); }
   #toast { position:absolute; bottom:calc(26px + env(safe-area-inset-bottom, 0px)); left:50%; transform:translateX(-50%); background:var(--shade); backdrop-filter:blur(3px); color:#FFF6E4; padding:11px 20px; border-radius:16px; font-size:14px; font-weight:500; z-index:8; pointer-events:none; opacity:0; transition:opacity 0.3s, transform 0.3s; box-shadow:0 4px 0 rgba(0,0,0,0.2); }
   .ov { position:absolute; inset:0; background:rgba(20,16,10,0.5); z-index:10; display:none; align-items:flex-end; justify-content:center; }
   .ov.show { display:flex; }
@@ -53,7 +54,7 @@
   .pips { display:flex; gap:3px; margin-top:4px; }
   .pip { width:15px; height:5px; border-radius:3px; background:#E9DEC4; }
   .pip.on { background:var(--gold-d); }
-  .buy { border:none; border-radius:13px; padding:10px 14px; font-family:inherit; font-size:14px; font-weight:700; color:#fff; background:linear-gradient(#6BC47A,var(--buy)); box-shadow:0 3px 0 var(--buy-d); cursor:pointer; white-space:nowrap; min-width:72px; }
+  .buy { border:2px solid rgba(255,255,255,0.4); border-radius:15px; padding:10px 14px; font-family:inherit; font-size:14px; font-weight:700; color:#fff; background:linear-gradient(#6BC47A,var(--buy)); box-shadow:0 3px 0 var(--buy-d); cursor:pointer; white-space:nowrap; min-width:72px; }
   .buy:active { transform:translateY(2px); box-shadow:0 1px 0 var(--buy-d); }
   .buy:disabled { background:#D5CBB4; box-shadow:0 3px 0 #B8AD94; color:#FFFDF6; cursor:default; }
   .buy.max { background:linear-gradient(#C9BFA6,#B4A98E); box-shadow:0 3px 0 #9A8F76; }
@@ -65,9 +66,9 @@
   .mcard h2 { font-size:20px; color:var(--ink); margin-bottom:8px; }
   .mcard p { font-size:14px; color:var(--ink2); line-height:1.5; margin-bottom:18px; }
   .mrow { display:flex; gap:10px; }
-  .mbtn { flex:1; border:none; border-radius:14px; padding:13px; font-family:inherit; font-size:15px; font-weight:700; cursor:pointer; }
+  .mbtn { flex:1; border:2px solid rgba(255,255,255,0.4); border-radius:16px; padding:13px; font-family:inherit; font-size:15px; font-weight:700; cursor:pointer; }
   .mbtn.pri { background:linear-gradient(#6BC47A,var(--buy)); color:#fff; box-shadow:0 3px 0 var(--buy-d); }
-  .mbtn.sec { background:#EDE3CC; color:#5C5240; box-shadow:0 3px 0 #D3C6A8; }
+  .mbtn.sec { background:linear-gradient(#F3E7FA,#E3D0F0); color:var(--ink); box-shadow:0 3px 0 #C9B0DE; }
   .mbtn:active { transform:translateY(2px); box-shadow:none; }
   @media (prefers-reduced-motion: reduce) { #cash, #toast, .buy, .mbtn, .closeb, .hbtn { transition:none; } }
 </style>
@@ -120,27 +121,29 @@ const VERTS = {
 };
 const VERTCOST = { it:350, hc:1150 };
 const COUNTRIES = [
-  { name:'India',  mul:1,  floorA:'#F2E8D2', floorB:'#EADFC2', wall:'#B99B6B', accent:'#C96F3B', sky:'rgba(150,205,230,0.6)', rug:'rgba(255,252,244,0.5)', passive:2,   moveCost:2400  },
-  { name:'Dubai',  mul:2.4,  floorA:'#F6E9C6', floorB:'#EFDEAE', wall:'#C0A45C', accent:'#C9A227', sky:'rgba(240,200,140,0.6)', rug:'rgba(255,250,232,0.5)', passive:9,   moveCost:25000 },
-  { name:'USA',    mul:6, floorA:'#EAEEF4', floorB:'#DEE4EC', wall:'#8FA2B8', accent:'#3B6FB5', sky:'rgba(120,170,215,0.6)', rug:'rgba(252,253,255,0.55)', passive:26,  moveCost:Infinity }
+  { name:'India',  mul:1,  floorA:'#FFF1DC', floorB:'#FFE6C2', wall:'#4EC0CE', accent:'#F2762E', sky:'rgba(190,240,255,0.7)', rug:'rgba(255,252,244,0.5)', passive:2,   moveCost:2400  },
+  { name:'Dubai',  mul:2.4,  floorA:'#FFF6D9', floorB:'#FFEBB4', wall:'#F2A63B', accent:'#E0761B', sky:'rgba(255,225,160,0.7)', rug:'rgba(255,250,232,0.5)', passive:9,   moveCost:25000 },
+  { name:'USA',    mul:6, floorA:'#EFEAFB', floorB:'#E2D9F6', wall:'#7A6BE0', accent:'#4B3BC4', sky:'rgba(180,200,255,0.7)', rug:'rgba(252,253,255,0.55)', passive:26,  moveCost:Infinity }
 ];
+// req = placements needed before the upgrade appears at all (the genre reveals a few at a time)
+// sub = monthly software subscription per level, charged with payroll
 const UPS = {
-  speed:    { name:'Founder hustle',  base:40,  mult:1.7,  max:6, desc:'You move 12% faster' },
-  cap:      { name:'Carry capacity',  base:60,  mult:1.8,  max:5, desc:'+1 resume carried, +1 follower' },
-  staff:    { name:'Staff speed',     base:150, mult:1.95, max:5, desc:'Staff move 18% faster' },
-  staffcap: { name:'Staff capacity',  base:200, mult:1.95, max:4, desc:'Staff carry and lead more' },
-  quality:  { name:'Sourcing quality',base:170, mult:1.95, max:5, desc:'Fewer resumes rejected at screening' },
-  printer:  { name:'Job board plan',  base:60,  mult:1.8,  max:6, desc:'Resumes print faster' },
-  screen:   { name:'AI resume screening', base:80, mult:1.8, max:6, desc:'Screening runs faster' },
-  aiint:    { name:'AI phone screener', base:220, mult:1.9, max:5, desc:'Interviews run 18% faster' },
-  ads:      { name:'Ad campaigns',    base:100, mult:1.85, max:6, desc:'Clients arrive 8% faster' },
-  rep:      { name:'Employer brand',  base:120, mult:2.05, max:4, desc:'Fees +15% per level' },
-  patience: { name:'Client lounge',   base:80,  mult:1.9,  max:4, desc:'Clients wait 20% longer' },
-  vipnet:   { name:'Premium network', base:250, mult:2.0,  max:3, desc:'+3% chance of VIP clients (they pay 5x)' },
-  zone:     { name:'Waiting area',    base:90,  mult:1.8,  max:3, desc:'+2 screened candidate spots' },
-  ready:    { name:'Placement bench', base:110, mult:1.85, max:2, desc:'+2 ready candidate spots' },
-  slots:    { name:'Client desks',    base:400, mult:2.0,  max:1, desc:'One more client can wait' },
-  booth:    { name:'Interview rooms', base:180, mult:1.85, max:3, desc:'+1 interview room' },
+  speed:    { name:'Founder hustle',  base:40,  mult:1.7,  max:6, req:0,  desc:'You move 12% faster' },
+  printer:  { name:'Job board plan',  base:60,  mult:1.8,  max:6, req:0,  sub:3, desc:'Resumes print faster' },
+  screen:   { name:'AI resume screening', base:80, mult:1.8, max:6, req:3, sub:5, desc:'Screening runs faster' },
+  cap:      { name:'Carry capacity',  base:60,  mult:1.8,  max:5, req:5,  desc:'+1 resume carried, +1 follower' },
+  booth:    { name:'Interview rooms', base:180, mult:1.85, max:3, req:8,  desc:'+1 interview room' },
+  zone:     { name:'Waiting area',    base:90,  mult:1.8,  max:3, req:12, desc:'+2 screened candidate spots' },
+  quality:  { name:'Sourcing quality',base:170, mult:1.95, max:5, req:15, desc:'Fewer resumes rejected at screening' },
+  staff:    { name:'Staff speed',     base:150, mult:1.95, max:5, req:18, desc:'Staff move 18% faster' },
+  ads:      { name:'Ad campaigns',    base:100, mult:1.85, max:6, req:22, desc:'Clients arrive 8% faster' },
+  ready:    { name:'Placement bench', base:110, mult:1.85, max:2, req:26, desc:'+2 ready candidate spots' },
+  aiint:    { name:'AI phone screener', base:220, mult:1.9, max:5, req:30, sub:8, desc:'Interviews run 18% faster' },
+  rep:      { name:'Employer brand',  base:120, mult:2.05, max:4, req:34, desc:'Fees +15% per level' },
+  staffcap: { name:'Staff capacity',  base:200, mult:1.95, max:4, req:38, desc:'Staff carry and lead more' },
+  patience: { name:'Client lounge',   base:80,  mult:1.9,  max:4, req:42, desc:'Clients wait 20% longer' },
+  slots:    { name:'Client desks',    base:400, mult:2.0,  max:1, req:46, desc:'One more client can wait' },
+  vipnet:   { name:'Premium network', base:250, mult:2.0,  max:3, req:50, desc:'+3% chance of VIP clients (they pay 5x)' },
 };
 const UPCATS = [
   ['Founder', ['speed','cap']],
@@ -154,7 +157,7 @@ const PEOPLE_SC = 1.8;   // one dial for how chunky everyone reads (~7% of scree
 const CAND_SC = 0.82 * PEOPLE_SC;
 const STAFF_UNIFORM = '#4A5160';
 const ROLE_TAG = { sourcer:'S', rec:'R', am:'A', fin:'F' };
-const SALARY = { sourcer:34, rec:46, am:58, fin:40 };
+const SALARY = { sourcer:17, rec:23, am:29, fin:20 };
 const MONTH = 45;
 const HIRES = {
   sourcer: { name:'Sourcer',         cost:180, max:4, desc:'Ferries resumes to screening' },
@@ -162,26 +165,34 @@ const HIRES = {
   am:      { name:'Account manager', cost:400, max:4, desc:'Introduces ready candidates to clients' },
   fin:     { name:'Finance exec',    cost:320, max:1, desc:'Collects and banks your fees' }
 };
+// One grid: a service column on the left, the hiring pipeline flowing down the middle.
+// COL_X is the left column, MAIN_X..MAIN_R the pipeline column; every row shares those edges.
+const COL_X = 26, COL_W = 176, MAIN_X = 232, MAIN_W = 562, MAIN_R = MAIN_X + MAIN_W;
+const ROW_Y = [132, 292, 470, 646, 892];   // board/desk, waiting, rooms, bench, lobby
 const L = {
-  printer: { x:72,  y:126, w:164, h:96 },
-  desk:    { x:494, y:126, w:210, h:96 },
-  zone:    { x:486, y:274, w:250, h:150 },
-  booth:   { x:296, y:456, w:448, h:136 },
-  lobby:   { x:236, y:898, w:496, h:152 },
-  door:    { x:20,  y:962, w:88,  h:120 },
-  mgr:     { x:62,  y:452, w:170, h:100 },
-  banner:  { x:74,  y:716, w:102, h:80 },
-  pads:    { sourcer:{x:280,y:250}, rec:{x:370,y:420}, am:{x:330,y:760}, fin:{x:660,y:800} },
-  shred:   { x:20,  y:142, w:64, h:58 },
-  exit:    { x:648, y:32,  w:150, h:66 }
+  printer: { x:MAIN_X,      y:ROW_Y[0], w:262, h:100 },
+  desk:    { x:MAIN_R-262,  y:ROW_Y[0], w:262, h:100 },
+  zone:    { x:MAIN_X,      y:ROW_Y[1], w:MAIN_W, h:148 },
+  booth:   { x:MAIN_X,      y:ROW_Y[2], w:MAIN_W, h:140 },
+  lobby:   { x:MAIN_X,      y:ROW_Y[4], w:MAIN_W, h:150 },
+  door:    { x:COL_X,       y:ROW_Y[4], w:96,  h:150 },
+  mgr:     { x:COL_X,       y:ROW_Y[2], w:COL_W, h:106 },
+  banner:  { x:COL_X+34,    y:ROW_Y[3], w:108, h:84 },
+  pads:    { sourcer:{x:COL_X+90,y:ROW_Y[0]+150}, rec:{x:MAIN_X+60,y:ROW_Y[2]-40},
+             am:{x:MAIN_X+70,y:ROW_Y[4]-70}, fin:{x:MAIN_R-60,y:ROW_Y[4]-70} },
+  shred:   { x:COL_X+52,    y:ROW_Y[0]+16, w:70, h:62 },
+  exit:    { x:MAIN_R-152,  y:30,  w:152, h:66 }
 };
+const BENCH = { x:MAIN_X, y:ROW_Y[3], w:MAIN_W, h:80 };
+const FIN_POST = { x:COL_X + COL_W/2, y:ROW_Y[4] - 96 };   // safe: was pinned past the right wall
 const boothSlots = [];
-for (let i=0;i<6;i++) boothSlots.push({ x:340+i*66, y:534 });
+const SLOT_X = i => MAIN_X + 62 + i * ((MAIN_W - 124) / 5);
+for (let i=0;i<6;i++) boothSlots.push({ x:SLOT_X(i), y:L.booth.y + 74 });
 const readySpots = [];
-for (let i=0;i<6;i++) readySpots.push({ x:340+i*66, y:668 });
+for (let i=0;i<6;i++) readySpots.push({ x:SLOT_X(i), y:BENCH.y + 44 });
 const zoneSlots = [];
-for (let r=0;r<3;r++) for (let c=0;c<4;c++) zoneSlots.push({ x:520+c*62, y:308+r*52 });
-const clientSlots = [ {x:316,y:992}, {x:428,y:992}, {x:540,y:992}, {x:652,y:992} ];
+for (let r=0;r<2;r++) for (let c=0;c<6;c++) zoneSlots.push({ x:SLOT_X(c), y:L.zone.y + 54 + r * 62 });
+const clientSlots = [0,1,2,3].map(i => ({ x: L.lobby.x + 96 + i * ((L.lobby.w - 192) / 3), y: L.lobby.y + 86 }));
 
 let state = null;
 function freshOffice() {
@@ -279,7 +290,15 @@ const amCap = () => 2 + Math.floor(state.ups.staffcap/1.5);
 const boothCap = () => Math.min(6, 3 + state.ups.booth);
 let atBooth = false;
 let UI_SCALE = 1;
-const F = (w, s) => w + ' ' + Math.round(s * UI_SCALE) + 'px Fredoka';
+const F = (w, s) => w + ' ' + Math.round(s * UI_SCALE) + 'px \'Baloo 2\'';
+const FT = s => Math.round(s * UI_SCALE) + 'px \'Titan One\'';
+// candy-style outlined text: fat dark stroke under a bright fill
+function pop(txt, x, y, fill, stroke, lw) {
+  ctx.lineJoin = 'round'; ctx.miterLimit = 2;
+  ctx.strokeStyle = stroke || 'rgba(58,35,88,0.85)'; ctx.lineWidth = (lw || 4) * UI_SCALE;
+  ctx.strokeText(txt, x, y);
+  ctx.fillStyle = fill; ctx.fillText(txt, x, y);
+}
 let isCoarse = false; try { isCoarse = matchMedia('(pointer: coarse)').matches; } catch(e) {}
 let idleT = 0;
 let roomRec = [];  // roomRec[i] === true when a recruiter is present and working in room i
@@ -304,7 +323,12 @@ const payrollTotal = () => {
   Object.keys(SALARY).forEach(k => { s += SALARY[k] * (state.hires[k]||0); });
   return nice(s * mul());
 };
-const monthlyDue = () => payrollTotal();
+const subsTotal = () => {
+  let s = 0;
+  Object.keys(UPS).forEach(k => { if (UPS[k].sub) s += UPS[k].sub * (state.ups[k]||0); });
+  return nice(s * mul());
+};
+const monthlyDue = () => payrollTotal() + subsTotal();
 const trading = () => state.tut >= TUT.length || state.placed >= 3;
 const START_CASH = 1000;
 const PAY_GATE = () => 5000 * mul();
@@ -492,8 +516,9 @@ function buildPanel() {
   setTab(panelTab);
   const pr = document.createElement('div'); pr.className = 'row tb-team';
   pr.innerHTML = tile('$', '#B08A4E') +
-    '<div class="info"><div class="nm">Monthly payroll ' + fmt(payrollTotal()) + '</div>' +
-    '<div class="ds">' + (payrollOn() ? 'Due every ' + MONTH + 's' : 'Starts once you have earned ' + fmt(PAY_GATE())) + '</div></div>';
+    '<div class="info"><div class="nm">Monthly costs ' + fmt(monthlyDue()) + '</div>' +
+    '<div class="ds">' + (payrollOn() ? 'Every ' + MONTH + 's' : 'Starts once you have earned ' + fmt(PAY_GATE())) +
+    '  ·  wages ' + fmt(payrollTotal()) + (subsTotal() ? '  ·  software ' + fmt(subsTotal()) : '') + '</div></div>';
   box.appendChild(pr);
 
   Object.keys(HIRES).forEach(k => {
@@ -503,6 +528,19 @@ function buildPanel() {
     for (let i=0;i<HIRES[k].max;i++) pips += '<div class="pip' + (i<cnt?' on':'') + '"></div>';
     pips += '</div>';
     row.innerHTML = tile(ROLE_TAG[k], TILE_COLORS[k]) + '<div class="info"><div class="nm">' + HIRES[k].name + '</div><div class="ds">' + HIRES[k].desc + '  ·  ' + fmt(nice(SALARY[k]*mul())) + '/mo</div>' + pips + '</div>';
+    if (cnt > 0) {
+      const f = document.createElement('button'); f.className = 'buy';
+      f.style.cssText = 'background:linear-gradient(#C9BCA8,#9C8C74);flex:none;min-width:44px;margin-right:6px';
+      f.textContent = '\u2212';
+      f.title = 'Let one go';
+      f.onclick = () => {
+        if (state.hires[k] <= 0) return;
+        state.hires[k]--; syncEmp(); sDrop();
+        toast(HIRES[k].name + ' let go  \u00b7  payroll now ' + fmt(payrollTotal()));
+        buildPanel(); saveGame();
+      };
+      row.appendChild(f);
+    }
     const b = document.createElement('button'); b.className = 'buy' + (maxed?' max':'');
     b.textContent = maxed ? 'Full' : fmt(cost);
     b.disabled = maxed || state.cash < cost;
@@ -537,10 +575,21 @@ function buildPanel() {
   rs.appendChild(rsb); box.appendChild(rs);
 
   UPCATS.forEach(cat => {
+    const shown = cat[1].filter(upVisible);
+    if (!shown.length) return;
     const hd = document.createElement('div'); hd.className = 'cat tb-ups'; hd.textContent = cat[0];
     box.appendChild(hd);
-    cat[1].forEach(k => addUpRow(box, k, cat[0]));
+    shown.forEach(k => addUpRow(box, k, cat[0]));
   });
+  // one teaser for whatever unlocks next, so progress feels visible
+  const nextK = Object.keys(UPS).filter(k => !upVisible(k)).sort((a,b) => (UPS[a].req||0) - (UPS[b].req||0))[0];
+  if (nextK) {
+    const nr = document.createElement('div'); nr.className = 'row tb-ups'; nr.style.opacity = '0.6';
+    nr.innerHTML = tile('\u{1F512}', '#9C8C74') +
+      '<div class="info"><div class="nm">' + UPS[nextK].name + '</div>' +
+      '<div class="ds">Unlocks at ' + UPS[nextK].req + ' placements  ·  you have ' + state.placed + '</div></div>';
+    box.appendChild(nr);
+  }
   let anyVert = false;
   Object.keys(VERTCOST).forEach(k => {
     if (state.verts.includes(k)) return;
@@ -554,13 +603,28 @@ function buildPanel() {
     box.appendChild(row);
   }
 }
+function upVisible(k) { return state.placed >= (UPS[k].req || 0) || state.ups[k] > 0; }
 function addUpRow(box, k, catName) {
     const u = UPS[k], lvl = state.ups[k], maxed = lvl >= u.max, cost = upCost(k);
     const row = document.createElement('div'); row.className = 'row tb-ups';
     let pips = '<div class="pips">';
     for (let i=0;i<u.max;i++) pips += '<div class="pip' + (i<lvl?' on':'') + '"></div>';
     pips += '</div>';
-    row.innerHTML = tile(u.name[0], TILE_COLORS[catName] || '#B08A4E') + '<div class="info"><div class="nm">' + u.name + '</div><div class="ds">' + u.desc + '</div>' + pips + '</div>';
+    const subLine = u.sub ? '  \u00b7  ' + fmt(nice(u.sub*mul())) + '/mo each' : '';
+    row.innerHTML = tile(u.name[0], TILE_COLORS[catName] || '#B08A4E') + '<div class="info"><div class="nm">' + u.name + '</div><div class="ds">' + u.desc + subLine + '</div>' + pips + '</div>';
+    if (u.sub && lvl > 0) {
+      const c = document.createElement('button'); c.className = 'buy';
+      c.style.cssText = 'background:linear-gradient(#C9BCA8,#9C8C74);flex:none;min-width:44px;margin-right:6px';
+      c.textContent = '\u2212';
+      c.title = 'Cancel one licence';
+      c.onclick = () => {
+        if (state.ups[k] <= 0) return;
+        state.ups[k]--; sDrop();
+        toast(u.name + ' licence cancelled  \u00b7  software now ' + fmt(subsTotal()) + '/mo');
+        buildPanel(); saveGame();
+      };
+      row.appendChild(c);
+    }
     const b = document.createElement('button'); b.className = 'buy' + (maxed?' max':'');
     b.textContent = maxed ? 'Max' : fmt(cost);
     b.disabled = maxed || state.cash < cost;
@@ -641,7 +705,7 @@ const TUT = [
   { txt:'Stay in the room and interview them yourself', done:() => candidates.some(c=>c.done) || state.placed>0, tgt:() => rc(L.booth) },
   { txt:'Walk an interviewed candidate to a waiting client', done:() => state.placed > 0, tgt:() => {
       const c = clients.find(cl => cl.st === 'wait');
-      return player_followers().some(f => f.done) && c ? { x:c.x, y:c.y } : { x:538, y:668 };
+      return player_followers().some(f => f.done) && c ? { x:c.x, y:c.y } : rc(BENCH);
     } },
   { txt:'Scoop up your fee', done:() => cashEverPicked || state.placed>2, tgt:() => bills.length ? bills[0] : rc(L.lobby) },
   { txt:'Visit the Manager desk to hire and upgrade', done:() => panelOpened || state.placed>4, tgt:() => rc(L.mgr) }
@@ -657,7 +721,7 @@ function syncEmp() {
   mk(emp.recs,     state.hires.rec,     i => ({ x:L.pads.rec.x, y:L.pads.rec.y, st:'idle', o:i, room:i, target:null }));
   emp.recs.forEach((r, i) => { r.room = i; });
   mk(emp.ams,      state.hires.am,      i => ({ x:L.pads.am.x, y:L.pads.am.y, trail:[], st:'idle', o:i }));
-  mk(emp.fins,     state.hires.fin,     i => ({ x:L.lobby.x+L.lobby.w+38, y:L.lobby.y+42, carry:0, n:0, wait:0, st:'idle', o:i }));
+  mk(emp.fins,     state.hires.fin,     i => ({ x:FIN_POST.x, y:FIN_POST.y, carry:0, n:0, wait:0, st:'idle', o:i }));
 }
 const ALLEMP = () => [].concat(emp.sourcers, emp.recs, emp.ams, emp.fins);
 const EMPKEY = { sourcers:'sourcer', recs:'rec', ams:'am', fins:'fin' };
@@ -856,7 +920,7 @@ function update(dt) {
     }
   } else if (!deskQueue.length) screenT = 0;
 
-  const zc = rc(L.zone), bc2 = rc(L.booth), rdc = { x:538, y:668 };
+  const zc = rc(L.zone), bc2 = rc(L.booth), rdc = rc(BENCH);
   const pf = () => player_followers();
   atBooth = dist(player.x,player.y,bc2.x,bc2.y) < 120;
   if (dist(player.x,player.y,zc.x,zc.y) < 132 && pf().length < followCap() && every('att',0.16)) {
@@ -1211,7 +1275,7 @@ function update(dt) {
     }
   });
   emp.fins.forEach(f => {
-    const post = { x:L.lobby.x+L.lobby.w+38, y:L.lobby.y+42 };
+    const post = FIN_POST;
     const moveF = (tx,ty,arrive) => {
       const d = dist(f.x,f.y,tx,ty);
       if (d < 16) arrive();
@@ -1420,11 +1484,11 @@ function station(r, fill, label, labelCol) {
   const lw = (mtCache[mtKey] !== undefined ? mtCache[mtKey] : (mtCache[mtKey] = ctx.measureText(label).width)) + 24;
   const lo = -OFFX + 6 + lw/2, hi = -OFFX + VIS_W - 6 - lw/2;
   const cx = hi > lo ? Math.max(lo, Math.min(hi, r.x+r.w/2)) : r.x+r.w/2;
-  ctx.fillStyle = 'rgba(255,252,242,0.92)';
-  rr(cx-lw/2, r.y-28, lw, 22, 11); ctx.fill();
-  ctx.fillStyle = 'rgba(59,50,39,0.12)';
-  rr(cx-lw/2, r.y-9, lw, 3, 2); ctx.fill();
-  ctx.fillStyle = labelCol || '#6B5738';
+  ctx.fillStyle = '#FFFFFF';
+  rr(cx-lw/2, r.y-30, lw, 25, 12); ctx.fill();
+  ctx.strokeStyle = 'rgba(58,35,88,0.22)'; ctx.lineWidth = 2;
+  rr(cx-lw/2, r.y-30, lw, 25, 12); ctx.stroke();
+  ctx.fillStyle = labelCol || '#5B2A86';
   ctx.fillText(label, cx, r.y-13);
 }
 function bar(x, y, w, pct, col) {
@@ -1464,10 +1528,10 @@ function drawStaticLayer(C) {
     ctx.strokeStyle = 'rgba(255,255,255,0.45)'; ctx.lineWidth = 2.5; rr(wx, 18, 96, 58, 9); ctx.stroke();
   }
   ctx.fillStyle = 'rgba(255,255,255,0.9)';
-  ctx.font = '700 22px Fredoka'; ctx.textAlign = 'left';
+  ctx.font = '700 22px \'Baloo 2\''; ctx.textAlign = 'left';
   ctx.fillText('HYRING', 22, 46);
   ctx.fillStyle = 'rgba(255,255,255,0.72)';
-  ctx.font = '500 14px Fredoka';
+  ctx.font = '500 14px \'Baloo 2\'';
   ctx.fillText(C.name + ' office', 22, 68);
   ctx.fillStyle = 'rgba(120,100,70,0.1)';
   rr(L.door.x+L.door.w+6, L.door.y+34, 62, 44, 8); ctx.fill();
@@ -1497,7 +1561,7 @@ function render() {
   ctx.fillStyle = '#3E3E46'; rr(sh.x+10, sh.y+9, sh.w-20, 7, 3); ctx.fill();
   ctx.fillStyle = '#5C5C64';
   for (let i=0;i<3;i++) rr(sh.x+12+i*16, sh.y+26, 10, 22, 3), ctx.fill();
-  ctx.fillStyle = 'rgba(110,95,65,0.85)'; ctx.font = F(500, 12); ctx.textAlign='center';
+  ctx.fillStyle = 'rgba(95,70,130,0.85)'; ctx.font = F(500, 12); ctx.textAlign='center';
   ctx.fillText('Shredder', sh.x+sh.w/2, sh.y+sh.h+15);
   ctx.restore();
   }
@@ -1523,7 +1587,7 @@ function render() {
     }
   }
 
-  station(L.printer, '#D8CBB2', 'Job board');
+  station(L.printer, '#F7D79B', 'Job board');
   const pr = L.printer;
   ctx.fillStyle = '#8A7A5E'; rr(pr.x+16, pr.y+18, 70, 46, 8); ctx.fill();
   const feed = 1 - Math.min(1, printT/Math.max(0.001, printInterval()));
@@ -1544,7 +1608,7 @@ function render() {
     ctx.fillText('Tray full!', pr.x+pr.w/2, pr.y+pr.h+16);
   }
 
-  station(L.desk, '#CFD8C4', 'Screening desk');
+  station(L.desk, '#A9E3BE', 'Screening desk');
   const dk = L.desk;
   ctx.fillStyle = '#5F6E58'; rr(dk.x+18, dk.y+22, 56, 38, 6); ctx.fill();
   ctx.fillStyle = '#CFEFC8'; rr(dk.x+23, dk.y+27, 46, 22, 3); ctx.fill();
@@ -1572,12 +1636,12 @@ function render() {
     ctx.fillStyle = 'rgba(120,100,70,0.13)';
     ctx.beginPath(); ctx.ellipse(s.x, s.y+16, 15, 6, 0, 0, Math.PI*2); ctx.fill();
   });
-  ctx.fillStyle = zFull ? '#B03A2E' : 'rgba(110,95,65,0.8)'; ctx.font = F(600, 13); ctx.textAlign='center';
+  ctx.fillStyle = zFull ? '#B03A2E' : 'rgba(95,70,130,0.8)'; ctx.font = F(600, 13); ctx.textAlign='center';
   ctext('Screened  ' + zn + '/' + zoneCap() + (zFull ? '  ·  screening paused' : ''), z.x+z.w/2, z.y-30);
 
 
 
-  station(L.booth, '#C6D6E4', 'Interview rooms', '#3C5A73');
+  station(L.booth, '#AFD4F7', 'Interview rooms', '#2C4E77');
   const bo = L.booth;
   for (let i=0;i<boothCap();i++) {
     const s = boothSlots[i];
@@ -1603,23 +1667,23 @@ function render() {
       rr(s.x+3, bo.y+bo.h-20, 8, 13, 2); ctx.fill();
       bar(s.x-20, bo.y+bo.h-16, 40, Math.min(1, (c.iT||0)/interviewTime()), '#A6B0BC');
       ctx.font = F(600, 10); ctx.textAlign = 'center';
-      ctx.fillText('no interviewer', s.x, bo.y+bo.h+14);
+      ctx.fillText('no interviewer', s.x, bo.y+bo.h-2);
     }
   });
   const rn = candidates.filter(c=>c.st==='ready').length, rFull = rn >= readyCap();
   ctx.setLineDash([8,7]); ctx.strokeStyle = rFull ? 'rgba(200,90,60,0.7)' : 'rgba(60,120,80,0.4)'; ctx.lineWidth = 2;
-  rr(304, 638, 432, 62, 14); ctx.stroke(); ctx.setLineDash([]);
+  rr(BENCH.x, BENCH.y, BENCH.w, BENCH.h, 14); ctx.stroke(); ctx.setLineDash([]);
   readySpots.slice(0, readyCap()).forEach(s => {
     ctx.fillStyle = 'rgba(60,120,80,0.14)';
     ctx.beginPath(); ctx.ellipse(s.x, s.y+16, 15, 6, 0, 0, Math.PI*2); ctx.fill();
   });
   ctx.fillStyle = rFull ? '#B03A2E' : 'rgba(60,110,75,0.85)'; ctx.font = F(600, 13); ctx.textAlign='center';
-  ctext('Ready to place  ' + rn + '/' + readyCap() + (rFull ? '  ·  interviews paused' : ''), 520, 622);
+  ctext('Ready to place  ' + rn + '/' + readyCap() + (rFull ? '  ·  interviews paused' : ''), BENCH.x + BENCH.w/2, BENCH.y - 12);
 
   const bn = L.banner;
   const promoLocked = !trading();
   const promoReady = !promoLocked && !rushOn && promoCd <= 0;
-  block3d(bn.x, bn.y, bn.w, bn.h, 10, promoReady ? '#D9A7C9' : '#C4BBB0', 12);
+  block3d(bn.x, bn.y, bn.w, bn.h, 10, promoReady ? '#FF9ED2' : '#C9BCD4', 12);
   ctx.fillStyle = 'rgba(255,255,255,0.9)'; rr(bn.x+9, bn.y+9, bn.w-18, bn.h-34, 7); ctx.fill();
   ctx.fillStyle = '#8A6E4C'; rr(bn.x+bn.w/2-13, bn.y+16, 26, 16, 3); ctx.fill();
   ctx.fillStyle = promoReady ? '#7A3A66' : '#8A8078';
@@ -1636,7 +1700,7 @@ function render() {
     ctx.beginPath(); ctx.arc(bn.x+bn.w/2, bn.y+bn.h/2, 56, -Math.PI/2, -Math.PI/2 + (padProg.promo/0.8)*Math.PI*2); ctx.stroke();
   }
 
-  station(L.mgr, '#D3C4DE', 'Manager desk');
+  station(L.mgr, '#DDBDF5', 'Manager desk');
   const mg = L.mgr;
   ctx.fillStyle = '#7A5E92'; rr(mg.x+20, mg.y+24, 52, 36, 6); ctx.fill();
   ctx.fillStyle = '#EBDFF5'; rr(mg.x+25, mg.y+29, 42, 20, 3); ctx.fill();
@@ -1647,7 +1711,7 @@ function render() {
   ctx.fillStyle = '#8A6E4C'; rr(d.x, d.y, d.w, d.h, 8); ctx.fill();
   ctx.fillStyle = '#6E5638'; rr(d.x+8, d.y+8, d.w-16, d.h-16, 6); ctx.fill();
   ctx.fillStyle = '#D9C9A8'; ctx.beginPath(); ctx.arc(d.x+d.w-18, d.y+d.h/2, 4, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = 'rgba(110,95,65,0.7)'; ctx.font = F(500, 12); ctx.textAlign='center';
+  ctx.fillStyle = 'rgba(95,70,130,0.7)'; ctx.font = F(500, 12); ctx.textAlign='center';
   ctx.fillText('Clients', d.x+d.w/2, d.y-8);
 
   const lb = L.lobby;
@@ -1791,7 +1855,7 @@ function render() {
   });
   floaters.forEach(f => {
     ctx.globalAlpha = Math.min(1, f.life*1.8);
-    ctx.font = F(700, 17); ctx.textAlign = 'center';
+    ctx.font = FT(17); ctx.textAlign = 'center';
     ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,255,255,0.85)';
     ctx.strokeText(f.txt, f.x, f.y);
     ctx.fillStyle = f.col; ctx.fillText(f.txt, f.x, f.y);
@@ -1802,11 +1866,11 @@ function render() {
     const pulse = 0.75 + Math.sin(performance.now()/160)*0.2;
     ctx.fillStyle = 'rgba(200,80,40,' + pulse*0.9 + ')';
     ctx.fillRect(0, 224, VW, 36);
-    ctx.fillStyle = '#FFF3D6'; ctx.font = F(700, 18); ctx.textAlign = 'center';
-    ctx.fillText('PROMOTION LIVE  fees x1.5  ' + Math.ceil(rushLeft) + 's', VW/2, 249);
+    ctx.font = FT(18); ctx.textAlign = 'center';
+    pop('PROMOTION LIVE  fees x1.5  ' + Math.ceil(rushLeft) + 's', VW/2, 249, '#FFF3D6');
   }
   ctx.font = F(500, 13); ctx.textAlign = 'right';
-  ctx.fillStyle = 'rgba(90,78,58,0.62)';
+  ctx.fillStyle = 'rgba(80,55,110,0.6)';
   ctx.fillText('Placed ' + state.placed + '   Rejected ' + (state.rejected||0) + '   Lost ' + state.lost, -OFFX+VIS_W-16, -OFFY+VIS_H-16);
   const carrying = player_followers().filter(c => c.done).length;
   if (carrying) {
