@@ -31,7 +31,10 @@
   .hbtns { display:flex; gap:8px; }
   .hbtn { pointer-events:auto; width:42px; height:42px; border-radius:50%; border:none; background:var(--shade); backdrop-filter:blur(3px); color:#FFF6E4; font-size:17px; font-weight:600; cursor:pointer; font-family:inherit; box-shadow:0 3px 0 rgba(0,0,0,0.22); }
   .hbtn:active { transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,0.22); }
-  #objective { font-family:'Titan One',cursive; letter-spacing:0.2px; font-size:13px; max-width:86%; white-space:normal; line-height:1.25; position:absolute; top:112px; left:50%; transform:translateX(-50%); background:var(--paper); color:var(--ink); padding:9px 16px; border-radius:16px; font-weight:600; z-index:5; text-align:center; pointer-events:none; box-shadow:0 4px 0 rgba(59,50,39,0.18), 0 6px 14px rgba(0,0,0,0.2); }
+  #payChip { position:absolute; left:12px; top:78px; white-space:nowrap; font-size:12px; padding:5px 10px;
+    border-radius:13px; box-shadow:0 3px 0 var(--grape-d); }
+  #payChip small { display:none; }
+  #objective { font-family:'Titan One',cursive; letter-spacing:0.2px; font-size:13px; max-width:74%; white-space:normal; line-height:1.25; position:absolute; top:84px; left:50%; transform:translateX(-50%); background:var(--paper); color:var(--ink); padding:9px 16px; border-radius:16px; font-weight:600; z-index:5; text-align:center; pointer-events:none; box-shadow:0 4px 0 rgba(59,50,39,0.18), 0 6px 14px rgba(0,0,0,0.2); }
   #toast { position:absolute; bottom:calc(26px + env(safe-area-inset-bottom, 0px)); left:50%; transform:translateX(-50%); background:var(--shade); backdrop-filter:blur(3px); color:#FFF6E4; padding:11px 20px; border-radius:16px; font-size:14px; font-weight:500; z-index:8; pointer-events:none; opacity:0; transition:opacity 0.3s, transform 0.3s; box-shadow:0 4px 0 rgba(0,0,0,0.2); }
   .ov { position:absolute; inset:0; background:rgba(20,16,10,0.5); z-index:10; display:none; align-items:flex-end; justify-content:center; }
   .ov.show { display:flex; }
@@ -88,7 +91,7 @@
   <canvas id="game"></canvas>
   <div class="hud">
     <div class="chip" id="countryChip">India office<small id="passiveTxt"></small></div>
-    <div class="chip" id="payChip" style="position:absolute;left:50%;top:62px;transform:translateX(-50%);white-space:nowrap">Payroll</div>
+    <div class="chip" id="payChip">Payroll</div>
     <div id="cash">$0</div>
     <div class="hbtns">
       <button class="hbtn" id="sndBtn">&#128266;</button>
@@ -135,7 +138,7 @@ let ctx = cv.getContext('2d');
 const wrap = document.getElementById('wrap');
 
 const VERTS = {
-  bc: { name:'Trades', color:'#B15B3E', dark:'#6B3120', fee:17 },
+  bc: { name:'Blue collar', color:'#B15B3E', dark:'#6B3120', fee:17 },
   it: { name:'IT staffing', color:'#4A90D9', dark:'#1E4E82', fee:40 },
   hc: { name:'Healthcare', color:'#2FA98C', dark:'#125E4B', fee:82 }
 };
@@ -188,14 +191,14 @@ const HIRES = {
 // One grid: a service column on the left, the hiring pipeline flowing down the middle.
 // COL_X is the left column, MAIN_X..MAIN_R the pipeline column; every row shares those edges.
 const COL_X = 26, COL_W = 176, MAIN_X = 232, MAIN_W = 562, MAIN_R = MAIN_X + MAIN_W;
-const ROW_Y = [132, 292, 470, 646, 892];   // board/desk, waiting, rooms, bench, lobby
+const ROW_Y = [132, 292, 470, 646, 926];   // board/desk, waiting, rooms, bench, lobby
 const L = {
   printer: { x:MAIN_X,      y:ROW_Y[0], w:262, h:100 },
   desk:    { x:MAIN_R-262,  y:ROW_Y[0], w:262, h:100 },
   zone:    { x:MAIN_X,      y:ROW_Y[1], w:MAIN_W, h:148 },
   booth:   { x:MAIN_X,      y:ROW_Y[2], w:MAIN_W, h:140 },
-  lobby:   { x:MAIN_X,      y:ROW_Y[4], w:MAIN_W, h:150 },
-  door:    { x:COL_X,       y:ROW_Y[4], w:96,  h:150 },
+  lobby:   { x:MAIN_X,      y:ROW_Y[4], w:MAIN_W, h:142 },
+  door:    { x:COL_X,       y:ROW_Y[4], w:96,  h:142 },
   mgr:     { x:COL_X,       y:ROW_Y[2], w:COL_W, h:106 },
   banner:  { x:COL_X+34,    y:ROW_Y[3], w:108, h:84 },
   pads:    { sourcer:{x:COL_X+90,y:ROW_Y[0]+150}, rec:{x:MAIN_X+60,y:ROW_Y[2]-40},
@@ -204,7 +207,7 @@ const L = {
   exit:    { x:MAIN_R-152,  y:30,  w:152, h:66 }
 };
 const BENCH = { x:MAIN_X, y:ROW_Y[3], w:MAIN_W, h:80 };
-const FIN_POST = { x:COL_X + COL_W/2, y:ROW_Y[4] - 96 };   // safe: was pinned past the right wall
+const FIN_POST = { x:MAIN_R - 78, y:ROW_Y[4] - 44 };   // open band beside the lobby, clear of the promo stand
 const boothSlots = [];
 const SLOT_X = i => MAIN_X + 62 + i * ((MAIN_W - 124) / 5);
 for (let i=0;i<6;i++) boothSlots.push({ x:SLOT_X(i), y:L.booth.y + 74 });
@@ -951,15 +954,15 @@ function update(dt) {
   }
 
   const pc = rc(L.printer);
-  if (dist(player.x,player.y,pc.x+55,pc.y) < 95 && player.carrying.length < carryCap() && printerStack.length && every('pk',0.12)) {
+  if (dist(player.x,player.y,pc.x+55,pc.y) < 78 && player.carrying.length < carryCap() && printerStack.length && every('pk',0.12)) {
     player.carrying.push(printerStack.pop()); sPick();
   }
   const dc = rc(L.desk);
-  if (dist(player.x,player.y,dc.x,dc.y+30) < 100 && player.carrying.length && deskQueue.length < 8 && every('dp',0.1)) {
+  if (dist(player.x,player.y,dc.x,dc.y+30) < 82 && player.carrying.length && deskQueue.length < 8 && every('dp',0.1)) {
     deskQueue.push(player.carrying.pop()); sDrop();
   }
   const shc = rc(L.shred);
-  if (dist(player.x,player.y,shc.x,shc.y) < 72 && dist(player.x,player.y,pc.x+55,pc.y) >= 95 && player.carrying.length && every('shred',0.12)) {
+  if (dist(player.x,player.y,shc.x,shc.y) < 58 && dist(player.x,player.y,pc.x+55,pc.y) >= 78 && player.carrying.length && every('shred',0.12)) {
     player.carrying.pop();
     beep(150, 0.1, 'sawtooth', 0.06); beep(110, 0.12, 'sawtooth', 0.05, 0.05);
     for (let i=0;i<7;i++) {
@@ -967,7 +970,7 @@ function update(dt) {
       parts.push({ x:shc.x, y:shc.y-14, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp-70, life:0.5+Math.random()*0.3, col:['#FFFFFF','#D8D0BC','#B8B0A0'][i%3], sz:3+Math.random()*3 });
     }
   }
-  const atDesk = dist(player.x,player.y,dc.x,dc.y+30) < 100;
+  const atDesk = dist(player.x,player.y,dc.x,dc.y+30) < 92;
   const screenRate = Math.min(2.35, 0.65 + 0.28*Math.min(4, state.hires.sourcer) + (atDesk ? 0.35 : 0) + 0.08*state.ups.staff);
   if (deskQueue.length && candidates.filter(c=>c.st==='wait').length < zoneCap()) {
     screenT += dt * screenRate;
@@ -991,8 +994,8 @@ function update(dt) {
 
   const zc = rc(L.zone), bc2 = rc(L.booth), rdc = rc(BENCH);
   const pf = () => player_followers();
-  atBooth = dist(player.x,player.y,bc2.x,bc2.y) < 120;
-  if (dist(player.x,player.y,zc.x,zc.y) < 132 && pf().length < followCap() && every('att',0.16)) {
+  atBooth = dist(player.x,player.y,bc2.x,bc2.y) < 104;
+  if (dist(player.x,player.y,zc.x,zc.y) < 104 && pf().length < followCap() && every('att',0.16)) {
     const w = candidates.find(c => c.st === 'wait' && !c.claim);
     if (w) { w.st='follow'; w.owner='p'; w.waitT=0; player.pop = 1; sPick(); }
   }
@@ -1005,7 +1008,7 @@ function update(dt) {
       if (bs >= 0) { f.st='booth'; f.owner=null; f.bslot=bs; f.iT=0; sDrop(); }
     }
   }
-  if (dist(player.x,player.y,rdc.x,rdc.y) < 92 && pf().length < followCap() && every('attr',0.16)) {
+  if (dist(player.x,player.y,rdc.x,rdc.y) < 76 && pf().length < followCap() && every('attr',0.16)) {
     const r = candidates.find(c=>c.st==='ready');
     if (r) { r.st='follow'; r.owner='p'; sPick(); }
   }
@@ -1035,7 +1038,7 @@ function update(dt) {
     }
   }
   const drc = { x:L.door.x+L.door.w/2, y:L.door.y+L.door.h/2 };
-  if (dist(player.x,player.y,drc.x,drc.y) < 96 && pf().length && every('rel',0.25)) {
+  if (dist(player.x,player.y,drc.x,drc.y) < 74 && pf().length && every('rel',0.25)) {
     const f = pf()[pf().length-1];
     f.dead = true;
     beep(320, 0.08, 'triangle', 0.06);
@@ -1389,15 +1392,20 @@ function update(dt) {
   const mc = COUNTRIES[state.country].moveCost;
   const frontier = Math.max.apply(null, ownedOffices()) === state.country;
   if (isFinite(mc) && frontier) {
-    const near = dist(player.x,player.y,ec.x,ec.y+30) < 90;
-    if (near && !exitLatch && state.cash >= mc && !modalOpen) { exitLatch = true; spendConfirmCountry(); }
-    if (!near) exitLatch = false;
+    const near = dist(player.x,player.y,ec.x,ec.y+30) < 76;
+    if (near && state.cash >= mc && !modalOpen && !tourOn) {
+      padProg.exit = (padProg.exit||0) + dt;
+      if (padProg.exit >= 0.7) { padProg.exit = 0; spendConfirmCountry(); }
+    } else padProg.exit = Math.max(0, (padProg.exit||0) - dt*2);
   }
 
   const mgc = rc(L.mgr);
-  const nearM = dist(player.x,player.y,mgc.x,mgc.y) < 95;
-  if (nearM && !panelLatch && !panelOpen && !modalOpen) { panelLatch = true; openPanel(); }
-  if (!nearM) panelLatch = false;
+  // hold to open, like the promo stand - walking past no longer yanks you into a menu
+  const nearM = dist(player.x,player.y,mgc.x,mgc.y) < 88;
+  if (nearM && !panelOpen && !modalOpen && !tourOn) {
+    padProg.mgr = (padProg.mgr||0) + dt;
+    if (padProg.mgr >= 0.55) { padProg.mgr = 0; openPanel(); }
+  } else padProg.mgr = Math.max(0, (padProg.mgr||0) - dt*2);
 
   const pInc = passiveRate()/60*dt;
   state.cash += pInc; state.earned = (state.earned||0) + pInc;
@@ -1747,6 +1755,22 @@ function render() {
   ctx.fillStyle = rFull ? '#B03A2E' : 'rgba(60,110,75,0.85)'; ctx.font = F(600, 13); ctx.textAlign='center';
   ctext('Ready to place  ' + rn + '/' + readyCap() + (rFull ? '  ·  interviews paused' : ''), BENCH.x + BENCH.w/2, BENCH.y - 12);
 
+  // the finance exec banks here - give it a building so the loop is legible
+  const bk = { x: FIN_POST.x - 42, y: FIN_POST.y - 66, w: 84, h: 62 };
+  block3d(bk.x, bk.y, bk.w, bk.h, 9, '#EBDFC6', 10);
+  ctx.fillStyle = '#8C6BB1';
+  ctx.beginPath();
+  ctx.moveTo(bk.x + 4, bk.y + 20); ctx.lineTo(bk.x + bk.w/2, bk.y - 4); ctx.lineTo(bk.x + bk.w - 4, bk.y + 20);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#FFFDF6';
+  for (let i = 0; i < 3; i++) rr(bk.x + 15 + i*20, bk.y + 24, 9, 26, 2), ctx.fill();
+  ctx.fillStyle = '#6E5490'; rr(bk.x + 8, bk.y + 50, bk.w - 16, 7, 3); ctx.fill();
+  ctx.fillStyle = '#C9922A'; ctx.beginPath(); ctx.arc(bk.x + bk.w/2, bk.y + 34, 8, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#FFF3C4'; ctx.font = F(700, 10); ctx.textAlign = 'center';
+  ctx.fillText('$', bk.x + bk.w/2, bk.y + 38);
+  ctx.fillStyle = 'rgba(95,70,130,0.85)'; ctx.font = F(600, 12);
+  ctext('Bank', bk.x + bk.w/2, bk.y - 12);
+
   const bn = L.banner;
   const promoLocked = !trading();
   const promoReady = !promoLocked && !rushOn && promoCd <= 0;
@@ -1768,6 +1792,11 @@ function render() {
   }
 
   station(L.mgr, '#DDBDF5', 'Manager desk');
+  if ((padProg.mgr||0) > 0.02) {
+    const mc2 = rc(L.mgr);
+    ctx.strokeStyle = '#7A3A66'; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.arc(mc2.x, mc2.y, 58, -Math.PI/2, -Math.PI/2 + (padProg.mgr/0.55)*Math.PI*2); ctx.stroke();
+  }
   const mg = L.mgr;
   ctx.fillStyle = '#7A5E92'; rr(mg.x+20, mg.y+24, 52, 36, 6); ctx.fill();
   ctx.fillStyle = '#EBDFF5'; rr(mg.x+25, mg.y+29, 42, 20, 3); ctx.fill();
@@ -1901,6 +1930,16 @@ function render() {
   pg.addColorStop(0, 'rgba(255,201,60,0.45)'); pg.addColorStop(1, 'rgba(255,201,60,0)');
   ctx.fillStyle = pg;
   ctx.beginPath(); ctx.ellipse(player.x, player.y+16, 34, 16, 0, 0, Math.PI*2); ctx.fill();
+  // ring on the floor + chevron overhead: this one is you
+  const ppu = (Math.sin(performance.now()/420)+1)/2;
+  ctx.strokeStyle = 'rgba(255,210,63,' + (0.55 + 0.3*ppu) + ')'; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.ellipse(player.x, player.y+18, 30 + 3*ppu, 13 + 1.5*ppu, 0, 0, Math.PI*2); ctx.stroke();
+  const chy = player.y - 78 * PEOPLE_SC/1.8 - 10 + Math.sin(performance.now()/300)*4;
+  ctx.fillStyle = '#FFD23F';
+  ctx.beginPath();
+  ctx.moveTo(player.x, chy + 15); ctx.lineTo(player.x - 12, chy); ctx.lineTo(player.x + 12, chy);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#8A5410'; ctx.lineWidth = 2.5; ctx.stroke();
   popWrap(player.x, player.y+18, player.pop || 0, () => drawPerson(player.x, player.y, 1.08 * PEOPLE_SC, '#F5F0E4', { seed:1, moving:player.moving, tie:'#C9553C', hair:'#33261A' }));
   player.carrying.forEach((v,i) =>
     drawResume(player.x + Math.sin(performance.now()/150+i*1.1)*(1.5+i*0.8), player.y-46-i*7, Math.sin(performance.now()/150+i*1.1)*0.1, v));
@@ -1949,7 +1988,7 @@ function render() {
       ctx.strokeStyle = '#8A6410'; ctx.lineWidth = 2; ctx.stroke();
       ctx.font = F(600, 12); ctx.textAlign = 'center';
       ctx.fillStyle = '#8A6410';
-      ctext('needs ' + VERTS[target.vert].name, ax, ay-8);
+      ctext('wants ' + VERTS[target.vert].name, ax, ay-8);
     }
   }
   if (state.tut < TUT.length) {
@@ -2020,7 +2059,7 @@ function loop(t) {
   if (!payrollOn()) pc.style.display = 'none';
   else {
     const due = monthlyDue(), t2 = Math.ceil(state.payT);
-    const ph = 'Payroll ' + fmt(due) + ' in ' + t2 + 's<small>&nbsp;</small>';
+    const ph = '\u{1F4B8} ' + fmt(due) + '  ' + t2 + 's';
     const pbg = state.cash < due ? 'rgba(180,58,42,0.82)' : 'rgba(59,50,39,0.55)';
     pc.style.display = 'block';
     if (pc._h !== ph) { pc._h = ph; pc.innerHTML = ph; }

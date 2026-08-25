@@ -133,7 +133,7 @@ setTimeout(async () => {
     if (chainMul() !== 1) throw new Error('streak multiplier should be removed');
 
     state.cash = 14000; clientT = 4;
-    at(rc(L.mgr).x, rc(L.mgr).y); tick(10);
+    at(rc(L.mgr).x, rc(L.mgr).y); tick(30);
     if (!panelOpen) throw new Error('manager desk did not open');
     const hireBtn = n => {
       const row = els['panelRows'].children.find(r => r._inner && r._inner.includes('>' + n + '<'));
@@ -245,7 +245,7 @@ setTimeout(async () => {
     log.push(['idle office trickle', 'placed ' + (state.placed - placedPre) + ', net ' + Math.round(state.cash)]);
 
     state.cash = 5000; // the idle run can end negative now; this test checks panel wiring, not affordability
-    at(rc(L.mgr).x, rc(L.mgr).y); tick(10);
+    at(rc(L.mgr).x, rc(L.mgr).y); tick(30);
     log.push(['panel rows', els['panelRows'].children.length]);
     if (!els['panelRows'].children.length) throw new Error('panel empty');
     const speedRow = els['panelRows'].children.find(r => r._inner && r._inner.includes('Founder hustle'));
@@ -260,7 +260,7 @@ setTimeout(async () => {
     if (!state.verts.includes('it')) throw new Error('IT unlock failed');
 
     state.cash = COUNTRIES[0].moveCost + 3000; panelOpen = false;
-    at(rc(L.exit).x, rc(L.exit).y); tick(10);
+    at(rc(L.exit).x, rc(L.exit).y); tick(30);
     const moveBtn = els['mBtns'].children.find(b => b.className.includes('pri'));
     if (!moveBtn) throw new Error('country modal did not open');
     moveBtn.onclick();
@@ -656,7 +656,7 @@ setTimeout(async () => {
     if (subs1 <= 0) throw new Error('software levels did not create a subscription cost');
     if (monthlyDue() !== payrollTotal() + subs1) throw new Error('monthly bill does not include software');
     if (subs1 > payrollTotal() + 200) throw new Error('software fees are meant to be small');
-    panelOpen = false; at(rc(L.mgr).x, rc(L.mgr).y); tick(10);
+    panelOpen = false; at(rc(L.mgr).x, rc(L.mgr).y); tick(30);
     const subRow = els['panelRows'].children.find(r => r._inner && r._inner.includes('AI resume screening'));
     const cancel = subRow && subRow.children.find(c => c.textContent === '\u2212');
     if (!cancel) throw new Error('no cancel control on a subscribed software row');
@@ -668,7 +668,7 @@ setTimeout(async () => {
 
     // upgrades reveal progressively instead of dumping the whole catalogue
     state = freshState(); resetFloor(); state.tut = TUT.length; state.placed = 0; state.cash = 50000;
-    at(rc(L.mgr).x, rc(L.mgr).y); tick(10);
+    at(rc(L.mgr).x, rc(L.mgr).y); tick(30);
     const earlyRows = els['panelRows'].children.filter(r => r.className && r.className.includes('tb-ups')).length;
     state.placed = 60; buildPanel();
     const lateRows = els['panelRows'].children.filter(r => r.className && r.className.includes('tb-ups')).length;
@@ -695,7 +695,7 @@ setTimeout(async () => {
     state = freshState(); resetFloor(); state.tut = TUT.length; modalOpen = false; gameOver = false;
     state.cash = 9000; state.placed = 42; state.hires = { sourcer:2, rec:1, am:1, fin:1 }; syncEmp();
     state.ups.printer = 3; state.payOn = true;
-    panelOpen = false; at(rc(L.mgr).x, rc(L.mgr).y); tick(10);
+    panelOpen = false; at(rc(L.mgr).x, rc(L.mgr).y); tick(30);
     const resetRow = els['panelRows'].children.find(r => r._inner && r._inner.includes('Start over'));
     if (!resetRow || !resetRow.children[0]) throw new Error('no Start over option at the Manager desk');
     resetRow.children[0].onclick();
