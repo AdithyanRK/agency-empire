@@ -40,7 +40,21 @@
   .hbtn:active { transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,0.22); }
   #payChip { display:block; font-size:11.5px; font-weight:600; line-height:1.1; margin-top:1px;
     color:#8A5A06; opacity:0.92; white-space:nowrap; }
-  #objective { letter-spacing:0.2px; font-size:13px; max-width:74%; white-space:normal; line-height:1.25; position:absolute; top:84px; left:50%; transform:translateX(-50%); background:var(--paper); color:var(--ink); padding:9px 16px; border-radius:16px; font-weight:600; z-index:5; text-align:center; pointer-events:none; box-shadow:0 4px 0 rgba(59,50,39,0.18), 0 6px 14px rgba(0,0,0,0.2); }
+  #lvlBar { position:absolute; left:12px; top:76px; z-index:5; display:flex; align-items:center; gap:6px;
+    background:var(--shade); border-radius:15px; padding:4px 9px 4px 4px; color:#FFF3FF; font-size:11px; font-weight:700; }
+  #lvlStar { position:relative; font-size:19px; line-height:1; }
+  #lvlStar b { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-size:10px; color:#7A4A05; padding-top:2px; }
+  .lvlTrack { width:54px; height:7px; border-radius:4px; background:rgba(255,255,255,0.25); overflow:hidden; }
+  .lvlTrack i { display:block; height:100%; width:0; background:linear-gradient(90deg,#8FE06B,#3FBF4F); border-radius:4px; transition:width 0.3s; }
+  #objective { letter-spacing:0.2px; font-size:13px; width:max-content; max-width:calc(100% - 24px); white-space:normal; line-height:1.15; position:absolute; top:118px; left:50%; transform:translateX(-50%); background:var(--paper); color:var(--ink); padding:7px 14px 7px 7px; border-radius:20px; font-weight:600;
+    z-index:5; text-align:left; pointer-events:none; display:flex; align-items:center; gap:9px;
+    box-shadow:0 4px 0 rgba(59,50,39,0.18), 0 6px 14px rgba(0,0,0,0.2); }
+  #objIcon { flex:none; width:34px; height:34px; border-radius:50%; background:#EDE2F7; display:flex;
+    align-items:center; justify-content:center; font-size:18px; }
+  .objtxt { display:flex; flex-direction:column; gap:4px; min-width:96px; }
+  .objTrack { height:8px; border-radius:4px; background:#E6DAF0; overflow:hidden; }
+  .objTrack i { display:block; height:100%; width:0; background:linear-gradient(90deg,#7AC8F5,#3F8FD0); border-radius:4px; transition:width 0.3s; }
   #toast { position:absolute; bottom:calc(26px + env(safe-area-inset-bottom, 0px)); left:50%; transform:translateX(-50%); background:var(--shade); backdrop-filter:blur(3px); color:#FFF6E4; padding:11px 20px; border-radius:16px; font-size:14px; font-weight:500; z-index:8; pointer-events:none; opacity:0; transition:opacity 0.3s, transform 0.3s; box-shadow:0 4px 0 rgba(0,0,0,0.2); }
   .ov { position:absolute; inset:0; background:rgba(20,16,10,0.5); z-index:10; display:none; align-items:flex-end; justify-content:center; }
   .ov.show { display:flex; }
@@ -114,7 +128,8 @@
       <button class="hbtn" id="setBtn" title="Settings">&#9881;&#65039;</button>
     </div>
   </div>
-  <div id="objective"></div>
+  <div id="lvlBar"><span id="lvlStar">&#11088;<b id="lvlNum">1</b></span><span class="lvlTrack"><i id="lvlFill"></i></span><span id="lvlTxt">0/15</span></div>
+  <div id="objective"><span id="objIcon">&#128196;</span><span class="objtxt"><b id="objText">…</b><span class="objTrack"><i id="objFill"></i></span></span></div>
   <div id="toast"></div>
   <div id="splash">
     <div class="spcard">
@@ -150,7 +165,9 @@
 </div>
 <script>
 'use strict';
-const VW = 820, VH = 1120;
+const VW = 900, VH = 1500;      // the office floor is now bigger than one screen
+const VIEW_W = 620;            // how much of it fits across the screen width
+const BG_M = 260;              // floor baked past the walls so edges never show blank
 const cv = document.getElementById('game');
 let ctx = cv.getContext('2d');
 const wrap = document.getElementById('wrap');
@@ -208,41 +225,41 @@ const HIRES = {
 };
 // One grid: a service column on the left, the hiring pipeline flowing down the middle.
 // COL_X is the left column, MAIN_X..MAIN_R the pipeline column; every row shares those edges.
-const COL_X = 26, COL_W = 176, MAIN_X = 232, MAIN_W = 562, MAIN_R = MAIN_X + MAIN_W;
-const ROW_Y = [132, 292, 470, 646, 926];   // board/desk, waiting, rooms, bench, lobby
+const COL_X = 40, COL_W = 190, MAIN_X = 276, MAIN_W = 584, MAIN_R = MAIN_X + MAIN_W;
+const ROW_Y = [170, 400, 660, 910, 1230];   // board/desk, waiting, rooms, bench, lobby
 const L = {
-  printer: { x:MAIN_X,      y:ROW_Y[0], w:262, h:100 },
-  desk:    { x:MAIN_R-262,  y:ROW_Y[0], w:262, h:100 },
-  zone:    { x:MAIN_X,      y:ROW_Y[1], w:MAIN_W, h:148 },
-  booth:   { x:MAIN_X,      y:ROW_Y[2], w:MAIN_W, h:140 },
-  lobby:   { x:MAIN_X,      y:ROW_Y[4], w:MAIN_W, h:142 },
-  door:    { x:COL_X,       y:ROW_Y[4], w:96,  h:142 },
-  mgr:     { x:COL_X,       y:ROW_Y[2], w:COL_W, h:106 },
+  printer: { x:MAIN_X,      y:ROW_Y[0], w:270, h:104 },
+  desk:    { x:MAIN_R-270,  y:ROW_Y[0], w:270, h:104 },
+  zone:    { x:MAIN_X,      y:ROW_Y[1], w:MAIN_W, h:170 },
+  booth:   { x:MAIN_X,      y:ROW_Y[2], w:MAIN_W, h:150 },
+  lobby:   { x:MAIN_X,      y:ROW_Y[4], w:MAIN_W, h:160 },
+  door:    { x:COL_X,       y:ROW_Y[4], w:104, h:160 },
+  mgr:     { x:COL_X,       y:ROW_Y[2], w:COL_W, h:116 },
   banner:  { x:COL_X+34,    y:ROW_Y[3], w:108, h:84 },
   pads:    { sourcer:{x:COL_X+90,y:ROW_Y[0]+150}, rec:{x:MAIN_X+60,y:ROW_Y[2]-40},
              am:{x:MAIN_X+70,y:ROW_Y[4]-70}, fin:{x:MAIN_R-60,y:ROW_Y[4]-70} },
   shred:   { x:COL_X+52,    y:ROW_Y[0]+16, w:70, h:62 },
   exit:    { x:MAIN_R-104,  y:34,  w:104, h:58 }
 };
-const BENCH = { x:MAIN_X, y:ROW_Y[3], w:MAIN_W, h:80 };
+const BENCH = { x:MAIN_X, y:ROW_Y[3], w:MAIN_W, h:96 };
 const FIN_POST = { x:MAIN_R - 78, y:ROW_Y[4] - 44 };   // open band beside the lobby, clear of the promo stand
 const boothSlots = [];
 const SLOT_X = i => MAIN_X + 62 + i * ((MAIN_W - 124) / 5);
-for (let i=0;i<6;i++) boothSlots.push({ x:SLOT_X(i), y:L.booth.y + 74 });
+for (let i=0;i<6;i++) boothSlots.push({ x:SLOT_X(i), y:L.booth.y + 82 });
 const readySpots = [];
-for (let i=0;i<6;i++) readySpots.push({ x:SLOT_X(i), y:BENCH.y + 44 });
+for (let i=0;i<6;i++) readySpots.push({ x:SLOT_X(i), y:BENCH.y + 52 });
 const zoneSlots = [];
-for (let r=0;r<2;r++) for (let c=0;c<6;c++) zoneSlots.push({ x:SLOT_X(c), y:L.zone.y + 54 + r * 62 });
-const clientSlots = [0,1,2,3].map(i => ({ x: L.lobby.x + 96 + i * ((L.lobby.w - 192) / 3), y: L.lobby.y + 86 }));
+for (let r=0;r<2;r++) for (let c=0;c<6;c++) zoneSlots.push({ x:SLOT_X(c), y:L.zone.y + 58 + r * 72 });
+const clientSlots = [0,1,2,3].map(i => ({ x: L.lobby.x + 96 + i * ((L.lobby.w - 192) / 3), y: L.lobby.y + 96 }));
 
 let state = null;
 function freshOffice() {
-  return { ups:{speed:0,cap:0,staff:0,staffcap:0,quality:0,printer:0,screen:0,aiint:0,ads:0,rep:0,patience:0,vipnet:0,booth:0,zone:0,ready:0,slots:0}, hires:{sourcer:0,rec:0,am:0,fin:0}, verts:['bc'], placed:0, lost:0, rejected:0 };
+  return { ups:{speed:0,cap:0,staff:0,staffcap:0,quality:0,printer:0,screen:0,aiint:0,ads:0,rep:0,patience:0,vipnet:0,booth:0,zone:0,ready:0,slots:0}, hires:{sourcer:0,rec:0,am:0,fin:0}, built:{}, verts:['bc'], placed:0, lost:0, rejected:0 };
 }
 function freshState() {
-  return Object.assign({ v:1, cash:START_CASH, earned:0, fast:false, country:0, tut:0, mute:false, ts:Date.now(), offices:{}, payOn:false, payT:MONTH, months:0 }, freshOffice());
+  return Object.assign({ v:1, cash:START_CASH, earned:0, fast:false, xp:0, country:0, tut:0, mute:false, ts:Date.now(), offices:{}, payOn:false, payT:MONTH, months:0 }, freshOffice());
 }
-const OFFICE_KEYS = ['ups','hires','verts','placed','lost','rejected'];
+const OFFICE_KEYS = ['ups','hires','built','verts','placed','lost','rejected'];
 function snapshotOffice() {
   const o = {};
   OFFICE_KEYS.forEach(k => { o[k] = JSON.parse(JSON.stringify(state[k])); });
@@ -298,27 +315,25 @@ function drawTour() {
   if (!s) { tourOn = false; return; }
   const r = s.r, pad = 14, pu = (Math.sin(performance.now()/300)+1)/2;
   ctx.save();
-  // dim everything around the stop with four bands (rr() starts its own path,
-  // so an even-odd punch-out would invert the mask)
-  const hx = r.x-pad, hy = r.y-pad, hw = r.w+pad*2, hh = r.h+pad*2;
-  const vx0 = -OFFX, vy0 = -OFFY;
+  // world rect -> screen rect, then dim around it with four bands
+  const hx = w2sx(r.x-pad), hy = w2sy(r.y-pad), hw = (r.w+pad*2)*WS, hh = (r.h+pad*2)*WS;
   ctx.fillStyle = 'rgba(43,20,64,0.72)';
-  ctx.fillRect(vx0, vy0, VIS_W, hy - vy0);
-  ctx.fillRect(vx0, hy + hh, VIS_W, (vy0 + VIS_H) - (hy + hh));
-  ctx.fillRect(vx0, hy, hx - vx0, hh);
-  ctx.fillRect(hx + hw, hy, (vx0 + VIS_W) - (hx + hw), hh);
+  ctx.fillRect(0, 0, cssW, Math.max(0, hy));
+  ctx.fillRect(0, hy + hh, cssW, Math.max(0, cssH - (hy + hh)));
+  ctx.fillRect(0, hy, Math.max(0, hx), hh);
+  ctx.fillRect(hx + hw, hy, Math.max(0, cssW - (hx + hw)), hh);
   ctx.strokeStyle = 'rgba(255,210,63,' + (0.65 + 0.35*pu) + ')'; ctx.lineWidth = 5;
-  rr(hx, hy, hw, hh, 20); ctx.stroke();
-  const below = r.y + r.h + 150 < -OFFY + VIS_H;
-  const cy = below ? r.y + r.h + pad + 26 : r.y - pad - 96;
-  const cw = Math.min(VIS_W - 60, 470), cx = VW/2 - cw/2;
-  ctx.fillStyle = '#FFF6FB'; rr(cx, cy, cw, 78, 18); ctx.fill();
-  ctx.strokeStyle = 'rgba(255,210,63,0.9)'; ctx.lineWidth = 3; rr(cx, cy, cw, 78, 18); ctx.stroke();
+  rr(hx, hy, hw, hh, 18); ctx.stroke();
+  const below = hy + hh + 120 < cssH;
+  const cy = below ? hy + hh + 18 : Math.max(66, hy - 92);
+  const cw = Math.min(cssW - 36, 340), cx = cssW/2 - cw/2;
+  ctx.fillStyle = '#FFF6FB'; rr(cx, cy, cw, 74, 18); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,210,63,0.9)'; ctx.lineWidth = 3; rr(cx, cy, cw, 74, 18); ctx.stroke();
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#5B2A86'; ctx.font = F(700, 15);
-  ctext(s.txt, VW/2, cy + 32);
-  ctx.fillStyle = 'rgba(90,60,130,0.75)'; ctx.font = F(600, 12);
-  ctext('tap to continue   \u00b7   ' + (tourStep+1) + '/' + stops.length, VW/2, cy + 58);
+  ctx.fillStyle = '#5B2A86'; ctx.font = '700 15px Fredoka, sans-serif';
+  ctx.fillText(s.txt, cssW/2, cy + 30);
+  ctx.fillStyle = 'rgba(90,60,130,0.75)'; ctx.font = '600 12px Fredoka, sans-serif';
+  ctx.fillText('tap to continue   \u00b7   ' + (tourStep+1) + '/' + stops.length, cssW/2, cy + 55);
   ctx.restore();
 }
 let coinFx = [];
@@ -337,16 +352,14 @@ function drawCross(x, y, r, alpha) {
 }
 const candSorted = [];   // reused scratch buffer for depth sorting
 let chipPos = null, chipKey = '';
-function cashChipWorld() {
-  const key = innerWidth + 'x' + innerHeight;
+function cashChipScreen() {
+  const key = cssW + 'x' + cssH;
   if (!chipPos || chipKey !== key) {
     chipKey = key;
-    chipPos = { x: VW/2, y: -OFFY + 46/scaleF };   // sensible fallback
+    chipPos = { x: cssW/2, y: 52 };
     try {
-      const r = $('cash').getBoundingClientRect();
-      const cr = cv.getBoundingClientRect();
-      if (r.width) chipPos = { x: (r.left + r.width/2 - cr.left)/scaleF - OFFX,
-                               y: (r.top + r.height/2 - cr.top)/scaleF - OFFY };
+      const r = $('cash').getBoundingClientRect(), cr = cv.getBoundingClientRect();
+      if (r.width) chipPos = { x: r.left + r.width/2 - cr.left, y: r.top + r.height/2 - cr.top };
     } catch(e) {}
   }
   return chipPos;
@@ -495,7 +508,7 @@ let scaleF = 1;
 function toWorld(e) {
   const r = cv.getBoundingClientRect();
   const p = e.touches ? e.touches[0] : e;
-  return { x:(p.clientX - r.left)/scaleF - OFFX, y:(p.clientY - r.top)/scaleF - OFFY };
+  return { x: camX + (p.clientX - r.left - cssW/2)/WS, y: camY + (p.clientY - r.top - cssH/2)/WS };
 }
 function pDown(e) {
   if (tourOn) { ensureAC(); nextTourStep(); e.preventDefault(); return; }
@@ -525,25 +538,33 @@ addEventListener('pointerup', pUp);
 addEventListener('pointercancel', pUp);
 cv.addEventListener('touchstart', e => e.preventDefault(), { passive:false });
 
-let PXR = 1;
-// The office is a fixed 820x1120 world. The canvas fills the whole viewport and the
-// world is centred inside it, with the floor extended to every edge - no letterbox bars.
-const TOPPAD = 150;            // guaranteed world px above the office, keeps stations clear of the HUD
-let OFFX = 0, OFFY = 0;        // world px of extra space left of / above the office
-let VIS_W = VW, VIS_H = VH;    // visible world size
+let PXR = 1, DPR = 1;
+// The canvas fills the viewport and a camera follows the player across a world that is
+// deliberately larger than one screen, so the floor never feels cramped.
+let cssW = 390, cssH = 780;    // viewport in CSS px
+let WS = 1;                    // world units -> CSS px
+let VIS_W = VW, VIS_H = VH;    // world units currently visible
+let camX = VW/2, camY = VH/2;
+function clampCam() {
+  camX = VIS_W >= VW ? VW/2 : Math.max(VIS_W/2, Math.min(VW - VIS_W/2, camX));
+  camY = VIS_H >= VH ? VH/2 : Math.max(VIS_H/2, Math.min(VH - VIS_H/2, camY));
+}
+function worldTransform() { ctx.setTransform(PXR, 0, 0, PXR, DPR*cssW/2 - camX*PXR, DPR*cssH/2 - camY*PXR); }
+function screenTransform() { ctx.setTransform(DPR, 0, 0, DPR, 0, 0); }
+const w2sx = x => (x - camX)*WS + cssW/2;
+const w2sy = y => (y - camY)*WS + cssH/2;
 function resize() {
-  const dpr = Math.min(devicePixelRatio||1, 2);
-  const cw = Math.max(1, innerWidth), ch = Math.max(1, innerHeight);
-  scaleF = Math.min(cw/VW, ch/(VH + TOPPAD));
-  UI_SCALE = Math.max(1, Math.min(2, 0.9/scaleF));
-  PXR = Math.max(0.1, dpr * scaleF);
-  VIS_W = cw/scaleF; VIS_H = ch/scaleF;
-  OFFX = Math.max(0, (VIS_W - VW)/2);
-  OFFY = Math.max(0, Math.min(VIS_H - VH, Math.max(TOPPAD, (VIS_H - VH)*0.45)));
-  cv.width = Math.max(1, Math.round(cw*dpr)); cv.height = Math.max(1, Math.round(ch*dpr));
-  cv.style.width = cw + 'px'; cv.style.height = ch + 'px';
-  wrap.style.width = cw + 'px'; wrap.style.height = ch + 'px';
-  ctx.setTransform(PXR, 0, 0, PXR, OFFX*PXR, OFFY*PXR);
+  DPR = Math.min(devicePixelRatio||1, 2);
+  cssW = Math.max(1, innerWidth); cssH = Math.max(1, innerHeight);
+  WS = cssW / VIEW_W;
+  scaleF = WS;                 // kept for pointer maths elsewhere
+  UI_SCALE = Math.max(1, Math.min(2, 0.78/WS));
+  PXR = Math.max(0.1, DPR * WS);
+  VIS_W = cssW / WS; VIS_H = cssH / WS;
+  cv.width = Math.max(1, Math.round(cssW*DPR)); cv.height = Math.max(1, Math.round(cssH*DPR));
+  cv.style.width = cssW + 'px'; cv.style.height = cssH + 'px';
+  wrap.style.width = cssW + 'px'; wrap.style.height = cssH + 'px';
+  clampCam(); worldTransform();
   vgCache = null; bgKey = ''; chipKey = '';
 }
 addEventListener('resize', resize);
@@ -855,18 +876,53 @@ function applyHud() {
   $('countryChip').title = COUNTRIES[state.country].name + ' office \u00b7 tap to travel';
 }
 
+// The office is built one station at a time. Each entry is an in-world pad you stand on.
+const BUILD = {
+  desk:  { cost:120, name:'Screening desk', rect:() => L.desk },
+  booth: { cost:200, name:'Interview rooms', rect:() => L.booth },
+  lobby: { cost:250, name:'Client lobby',   rect:() => L.lobby },
+  mgr:   { cost:300, name:'Manager desk',   rect:() => L.mgr },
+  bank:  { cost:500, name:'Bank',           rect:() => ({ x:FIN_POST.x-46, y:FIN_POST.y-70, w:92, h:70 }) },
+  promo: { cost:700, name:'Promo stand',    rect:() => L.banner },
+};
+const built = k => !!(state.built && state.built[k]);
+function buildAll() { Object.keys(BUILD).forEach(k => { state.built[k] = true; }); }
+const buildCost = k => nice(BUILD[k].cost * mul());
+
+// One task at a time, in the order a new player can actually follow.
 const TUT = [
-  { txt:'Walk to the job board and grab the resumes', done:() => player.carrying.length>0 || deskQueue.length>0 || candidates.length>0 || state.placed>0, tgt:() => { const c2 = rc(L.printer); return { x:c2.x+55, y:c2.y }; } },
-  { txt:'Drop them at the screening desk', done:() => deskQueue.length>0 || candidates.length>0 || state.placed>0, tgt:() => { const c2 = rc(L.desk); return { x:c2.x, y:c2.y+30 }; } },
-  { txt:'Lead a candidate to the interview rooms', done:() => candidates.some(c=>c.st==='booth' || c.done) || state.placed>0, tgt:() => player_followers().some(f=>!f.done) ? rc(L.booth) : rc(L.zone) },
-  { txt:'Stay in the room and interview them yourself', done:() => candidates.some(c=>c.done) || state.placed>0, tgt:() => rc(L.booth) },
-  { txt:'Walk an interviewed candidate to a waiting client', done:() => state.placed > 0, tgt:() => {
-      const c = clients.find(cl => cl.st === 'wait');
-      return player_followers().some(f => f.done) && c ? { x:c.x, y:c.y } : rc(BENCH);
-    } },
-  { txt:'Scoop up your fee', done:() => cashEverPicked || state.placed>2, tgt:() => bills.length ? bills[0] : rc(L.lobby) },
-  { txt:'Visit the Manager desk to hire and upgrade', done:() => panelOpened || state.placed>4, tgt:() => rc(L.mgr) }
+  { txt:'Grab resumes from the job board', icon:'\u{1F4C4}',
+    done:() => player.carrying.length>0 || deskQueue.length>0 || candidates.length>0,
+    tgt:() => { const c2 = rc(L.printer); return { x:c2.x+55, y:c2.y }; } },
+  { txt:'Build the screening desk', icon:'\u{1F50D}', build:'desk',
+    done:() => built('desk'), tgt:() => rc(L.desk) },
+  { txt:'Drop resumes at screening', icon:'\u{1F4CB}',
+    done:() => candidates.length>0 || state.placed>0,
+    tgt:() => { const c2 = rc(L.desk); return { x:c2.x, y:c2.y+30 }; } },
+  { txt:'Build an interview room', icon:'\u{1F6AA}', build:'booth',
+    done:() => built('booth'), tgt:() => rc(L.booth) },
+  { txt:'Walk someone in and interview them', icon:'\u{1F5E3}',
+    done:() => candidates.some(c=>c.done) || state.placed>0,
+    tgt:() => player_followers().some(f=>!f.done) ? rc(L.booth) : rc(L.zone) },
+  { txt:'Open the client lobby', icon:'\u{1F454}', build:'lobby',
+    done:() => built('lobby'), tgt:() => rc(L.lobby) },
+  { txt:'Introduce a candidate to a client', icon:'\u{1F91D}',
+    done:() => state.placed > 0,
+    tgt:() => { const c = clients.find(cl => cl.st === 'wait');
+                return player_followers().some(f => f.done) && c ? { x:c.x, y:c.y } : rc(BENCH); } },
+  { txt:'Scoop up your fee', icon:'\u{1F4B5}',
+    done:() => cashEverPicked || state.placed>2, tgt:() => bills.length ? bills[0] : rc(L.lobby) },
+  { txt:'Build the manager desk', icon:'\u{1F5C4}', build:'mgr',
+    done:() => built('mgr'), tgt:() => rc(L.mgr) },
+  { txt:'Hire your first sourcer', icon:'\u{1F575}',
+    done:() => state.hires.sourcer > 0, tgt:() => rc(L.mgr) },
+  { txt:'Build the bank', icon:'\u{1F3E6}', build:'bank',
+    done:() => built('bank'), tgt:() => ({ x:FIN_POST.x, y:FIN_POST.y-34 }) },
+  { txt:'Build the promo stand', icon:'\u{1F4E3}', build:'promo',
+    done:() => built('promo'), tgt:() => rc(L.banner) },
 ];
+const XP_PER_TASK = 3, XP_PER_LEVEL = 15;
+const lvlOf = xp => 1 + Math.floor(xp / XP_PER_LEVEL);
 function player_followers() { return candidates.filter(c => c.st==='follow' && c.owner==='p'); }
 function am_followers() { return candidates.filter(c => c.st==='follow' && String(c.owner).indexOf('am')===0); }
 function syncEmp() {
@@ -874,6 +930,8 @@ function syncEmp() {
   Object.keys(HIRES).forEach(k => { state.hires[k] = Math.max(0, Math.min(HIRES[k].max, state.hires[k]|0)); });
   const mk = (arr, n, f) => { while (arr.length < n) arr.push(f(arr.length)); if (arr.length > n) arr.length = n; arr.forEach((u,i)=>u.o=i); };
   mk(emp.sourcers, state.hires.sourcer, i => ({ x:L.pads.sourcer.x, y:L.pads.sourcer.y, carrying:[], st:'idle', o:i }));
+  if (!built('booth')) state.hires.rec = 0;
+  if (!built('bank')) state.hires.fin = 0;
   state.hires.rec = Math.min(state.hires.rec, boothCap() - 1);
   mk(emp.recs,     state.hires.rec,     i => ({ x:L.pads.rec.x, y:L.pads.rec.y, st:'idle', o:i, room:i, target:null }));
   emp.recs.forEach((r, i) => { r.room = i; });
@@ -1017,6 +1075,9 @@ function update(dt) {
   const mm = Math.hypot(mx,my);
   player.moving = mm > 0.05 && !panelOpen && !modalOpen;
   if (player.moving || joy) idleT = 0; else idleT += dt;
+  const camK = Math.min(1, dt * 6);
+  camX += (player.x - camX) * camK; camY += (player.y - camY) * camK;
+  clampCam();
   if (player.pop) player.pop = Math.max(0, player.pop - dt*5);
   const decay = u => { if (u.pop) u.pop = Math.max(0, u.pop - dt*5); };
   emp.sourcers.forEach(decay); emp.recs.forEach(decay); emp.ams.forEach(decay); emp.fins.forEach(decay);
@@ -1024,8 +1085,8 @@ function update(dt) {
   if (player.moving) {
     if (mm > 1) { mx/=mm; my/=mm; }
     player.x += mx*playerSpeed()*dt; player.y += my*playerSpeed()*dt;
-    player.x = Math.max(-OFFX+28, Math.min(-OFFX+VIS_W-28, player.x));
-    player.y = Math.max(100, Math.min(-OFFY+VIS_H-36, player.y));
+    player.x = Math.max(30, Math.min(VW-30, player.x));
+    player.y = Math.max(120, Math.min(VH-40, player.y));
     if (Math.abs(mx) > 0.1) player.face = mx > 0 ? 1 : -1;
     const tr = player.trail;
     if (!tr.length || dist(player.x,player.y,tr[0].x,tr[0].y) > 3) {
@@ -1044,7 +1105,7 @@ function update(dt) {
     player.carrying.push(printerStack.pop()); sPick();
   }
   const dc = rc(L.desk);
-  if (dist(player.x,player.y,dc.x,dc.y+30) < 82 && player.carrying.length && deskQueue.length < 8 && every('dp',0.1)) {
+  if (built('desk') && dist(player.x,player.y,dc.x,dc.y+30) < 82 && player.carrying.length && deskQueue.length < 8 && every('dp',0.1)) {
     deskQueue.push(player.carrying.pop()); sDrop();
   }
   const shc = rc(L.shred);
@@ -1058,7 +1119,7 @@ function update(dt) {
   }
   const atDesk = dist(player.x,player.y,dc.x,dc.y+30) < 92;
   const screenRate = Math.min(2.35, 0.65 + 0.28*Math.min(4, state.hires.sourcer) + (atDesk ? 0.35 : 0) + 0.08*state.ups.staff);
-  if (deskQueue.length && candidates.filter(c=>c.st==='wait').length < zoneCap()) {
+  if (built('desk') && deskQueue.length && candidates.filter(c=>c.st==='wait').length < zoneCap()) {
     screenT += dt * screenRate;
     if (screenT >= screenTime()) {
       screenT = 0;
@@ -1080,12 +1141,12 @@ function update(dt) {
 
   const zc = rc(L.zone), bc2 = rc(L.booth), rdc = rc(BENCH);
   const pf = () => player_followers();
-  atBooth = dist(player.x,player.y,bc2.x,bc2.y) < 104;
+  atBooth = built('booth') && dist(player.x,player.y,bc2.x,bc2.y) < 104;
   if (dist(player.x,player.y,zc.x,zc.y) < 104 && pf().length < followCap() && every('att',0.16)) {
     const w = candidates.find(c => c.st === 'wait' && !c.claim);
     if (w) { w.st='follow'; w.owner='p'; w.waitT=0; player.pop = 1; sPick(); }
   }
-  if (atBooth && every('bdrop', 0.18)) {
+  if (atBooth && built('booth') && every('bdrop', 0.18)) {
     const f = pf().filter(c => !c.done).pop();
     if (f) {
       const taken = candidates.filter(c => c.st==='booth').map(c => c.bslot);
@@ -1244,13 +1305,30 @@ function update(dt) {
   });
   candidates = candidates.filter(c => !c.dead);
 
+  // build pads
+  Object.keys(BUILD).forEach(k => {
+    if (built(k)) return;
+    const r = BUILD[k].rect(), c2 = { x:r.x+r.w/2, y:r.y+r.h/2 }, cost = buildCost(k);
+    const key = 'b_' + k;
+    if (!tourOn && !modalOpen && dist(player.x,player.y,c2.x,c2.y) < 92 && state.cash >= cost) {
+      padProg[key] = (padProg[key]||0) + dt;
+      if (padProg[key] >= 0.9) {
+        padProg[key] = 0;
+        state.cash -= cost; state.built[k] = true; sBuy();
+        confetti(c2.x, c2.y-20, '#4EC0CE'); confetti(c2.x-40, c2.y, '#FFD23F');
+        toast(BUILD[k].name + ' built!');
+        saveGame();
+      }
+    } else padProg[key] = Math.max(0, (padProg[key]||0) - dt*2);
+  });
+
   if (promoCd > 0) promoCd -= dt;
   if (rushOn) {
     rushLeft -= dt;
     if (rushLeft <= 0) { rushOn = false; promoCd = 45; }
   }
   const bnc = { x:L.banner.x+L.banner.w/2, y:L.banner.y+L.banner.h/2 };
-  if (!rushOn && promoCd <= 0 && trading() &&
+  if (built('promo') && !rushOn && promoCd <= 0 && trading() &&
       dist(player.x,player.y,bnc.x,bnc.y) < 74 && state.cash >= promoCost()) {
     padProg.promo = (padProg.promo||0) + dt;
     if (padProg.promo >= 0.8) {
@@ -1262,8 +1340,8 @@ function update(dt) {
   } else padProg.promo = Math.max(0, (padProg.promo||0) - dt*2);
 
 
-  clientT -= dt;
-  if (clientT <= 0) {
+  if (built('lobby')) clientT -= dt;
+  if (built('lobby') && clientT <= 0) {
     spawnClient();
     clientT = (rushOn ? 0.42 : 1) * (10.5 - 4.0*heat()) * adsFactor() + Math.random()*1.8;
   }
@@ -1492,7 +1570,7 @@ function update(dt) {
 
   const mgc = rc(L.mgr);
   // hold to open, like the promo stand - walking past no longer yanks you into a menu
-  const nearM = dist(player.x,player.y,mgc.x,mgc.y) < 88;
+  const nearM = built('mgr') && dist(player.x,player.y,mgc.x,mgc.y) < 88;
   if (!nearM) panelLatch = false;                       // walk away to re-arm the desk
   if (nearM && !panelOpen && !modalOpen && !tourOn && !panelLatch) {
     padProg.mgr = (padProg.mgr||0) + dt;
@@ -1531,7 +1609,14 @@ function update(dt) {
     }
   }
 
-  if (state.tut < TUT.length && TUT[state.tut].done()) { state.tut++; saveGame(); }
+  if (state.tut < TUT.length && TUT[state.tut].done()) {
+    state.tut++;
+    const lv = lvlOf(state.xp||0);
+    state.xp = (state.xp||0) + XP_PER_TASK;
+    sPlace();
+    if (lvlOf(state.xp) > lv) { toast('Level ' + lvlOf(state.xp) + '!'); for (let i=0;i<3;i++) confetti(player.x + (i-1)*40, player.y - 60, '#FFD23F'); }
+    saveGame();
+  }
   if (!hintIT && !state.verts.includes('it') && state.cash > vertCost('it')*0.9) { hintIT = true; toast('IT staffing is available at the Manager desk'); }
   if (!hintHC && state.verts.includes('it') && !state.verts.includes('hc') && state.cash > vertCost('hc')*0.9) { hintHC = true; toast('Healthcare industry is available at the Manager desk'); }
 
@@ -1657,7 +1742,7 @@ function fitFont(label, weight, size, maxW) {
 // centred text that never runs off the visible edges
 function ctext(label, cx, y) {
   const half = ctx.measureText(label).width/2;
-  const lo = -OFFX + 8 + half, hi = -OFFX + VIS_W - 8 - half;
+  const lo = camX - VIS_W/2 + 10 + half, hi = camX + VIS_W/2 - 10 - half;
   ctx.fillText(label, hi > lo ? Math.max(lo, Math.min(hi, cx)) : cx, y);
 }
 function station(r, fill, label, labelCol) {
@@ -1665,7 +1750,7 @@ function station(r, fill, label, labelCol) {
   ctx.font = F(600, 14); ctx.textAlign = 'center';
   const mtKey = UI_SCALE + '|' + label;
   const lw = (mtCache[mtKey] !== undefined ? mtCache[mtKey] : (mtCache[mtKey] = ctx.measureText(label).width)) + 24;
-  const lo = -OFFX + 6 + lw/2, hi = -OFFX + VIS_W - 6 - lw/2;
+  const lo = camX - VIS_W/2 + 8 + lw/2, hi = camX + VIS_W/2 - 8 - lw/2;
   const cx = hi > lo ? Math.max(lo, Math.min(hi, r.x+r.w/2)) : r.x+r.w/2;
   ctx.fillStyle = '#FFFFFF';
   rr(cx-lw/2, r.y-30, lw, 25, 12); ctx.fill();
@@ -1683,25 +1768,25 @@ let bgCv = null, bgKey = '';
 function drawStaticLayer(C) {
   // bake the architectural set dressing: floor, checkerboard, light pool, wall, windows, sign
   if (!bgCv) bgCv = document.createElement('canvas');
-  bgCv.width = cv.width; bgCv.height = cv.height;
+  bgCv.width = Math.max(1, Math.round((VW + BG_M*2) * PXR));
+  bgCv.height = Math.max(1, Math.round((VH + BG_M*2) * PXR));
   const bctx = bgCv.getContext('2d');
   if (!bctx) return;
   const prev = ctx; ctx = bctx;
-  ctx.setTransform(PXR, 0, 0, PXR, OFFX*PXR, OFFY*PXR);
-  const vx = -OFFX, vy = -OFFY;
-  ctx.clearRect(vx, vy, VIS_W, VIS_H);
-  ctx.fillStyle = C.floorA; ctx.fillRect(vx, vy, VIS_W, VIS_H);
+  ctx.setTransform(PXR, 0, 0, PXR, BG_M*PXR, BG_M*PXR);
+  const vx = -BG_M, vy = -BG_M, bw = VW + BG_M*2, bh = VH + BG_M*2;
+  ctx.clearRect(vx, vy, bw, bh);
+  ctx.fillStyle = C.floorA; ctx.fillRect(vx, vy, bw, bh);
   ctx.fillStyle = C.floorB;
   const ts = 96;
-  for (let ty=Math.floor(vy/ts); ty<(vy+VIS_H)/ts; ty++) for (let tx=Math.floor(vx/ts); tx<(vx+VIS_W)/ts; tx++)
+  for (let ty=Math.floor(vy/ts); ty<(vy+bh)/ts; ty++) for (let tx=Math.floor(vx/ts); tx<(vx+bw)/ts; tx++)
     if (((tx%2)+2)%2 === ((ty%2)+2)%2) ctx.fillRect(tx*ts, ty*ts, ts, ts);
-  const cy2 = vy + VIS_H/2;
-  const pool = ctx.createRadialGradient(VW/2, cy2, 120, VW/2, cy2, VIS_H*0.62);
+  const pool = ctx.createRadialGradient(VW/2, VH/2, 200, VW/2, VH/2, VH*0.72);
   pool.addColorStop(0, 'rgba(255,250,230,0.32)'); pool.addColorStop(1, 'rgba(255,250,230,0)');
-  ctx.fillStyle = pool; ctx.fillRect(vx, vy, VIS_W, VIS_H);
-  ctx.fillStyle = C.wall; ctx.fillRect(vx, vy, VIS_W, 96 - vy);
-  ctx.fillStyle = shade(C.wall, 0.78); ctx.fillRect(vx, 86, VIS_W, 12);
-  ctx.fillStyle = 'rgba(0,0,0,0.1)'; ctx.fillRect(vx, 98, VIS_W, 6);
+  ctx.fillStyle = pool; ctx.fillRect(vx, vy, bw, bh);
+  ctx.fillStyle = C.wall; ctx.fillRect(vx, vy, bw, 96 - vy);
+  ctx.fillStyle = shade(C.wall, 0.78); ctx.fillRect(vx, 86, bw, 12);
+  ctx.fillStyle = 'rgba(0,0,0,0.1)'; ctx.fillRect(vx, 98, bw, 6);
   ctx.fillStyle = 'rgba(120,100,70,0.1)';
   rr(L.door.x+L.door.w+6, L.door.y+34, 62, 44, 8); ctx.fill();
   ctx = prev;
@@ -1709,16 +1794,40 @@ function drawStaticLayer(C) {
 let vgCache = null;
 function render() {
   const C = COUNTRIES[state.country];
-  const key = state.country + '|' + cv.width + 'x' + cv.height + '|' + Math.round(OFFX) + ',' + Math.round(OFFY);
+  const key = state.country + '|' + Math.round(PXR*100) + '|' + (state.built ? Object.keys(state.built).filter(k => state.built[k]).join('') : '');
   if (key !== bgKey) { drawStaticLayer(C); bgKey = key; }
-  if (bgCv) {
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, cv.width, cv.height);
-    try { ctx.drawImage(bgCv, 0, 0); } catch(e) {}
-    ctx.setTransform(PXR, 0, 0, PXR, OFFX*PXR, OFFY*PXR);
-  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = C.wall; ctx.fillRect(0, 0, cv.width, cv.height);
+  worldTransform();
+  if (bgCv) { try { ctx.drawImage(bgCv, -BG_M, -BG_M, VW + BG_M*2, VH + BG_M*2); } catch(e) {} }
 
 
+
+  Object.keys(BUILD).forEach(k => {
+    if (built(k)) return;
+    const r = BUILD[k].rect(), cost = buildCost(k), afford = state.cash >= cost;
+    const pr = padProg['b_' + k] || 0;
+    ctx.setLineDash([10, 8]);
+    ctx.strokeStyle = afford ? 'rgba(90,60,130,0.55)' : 'rgba(120,110,130,0.35)';
+    ctx.lineWidth = 3; rr(r.x, r.y, r.w, r.h, 16); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = afford ? 'rgba(255,236,190,0.5)' : 'rgba(220,214,226,0.4)';
+    rr(r.x, r.y, r.w, r.h, 16); ctx.fill();
+    const cx2 = r.x + r.w/2, cy2 = r.y + r.h/2;
+    const pw = 132, ph = 54;
+    ctx.fillStyle = afford ? '#FFF3C4' : '#E4DFEA';
+    rr(cx2-pw/2, cy2-ph/2, pw, ph, 14); ctx.fill();
+    ctx.strokeStyle = afford ? '#E0961A' : '#B9AEC6'; ctx.lineWidth = 3;
+    rr(cx2-pw/2, cy2-ph/2, pw, ph, 14); ctx.stroke();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = afford ? '#7A4A05' : '#7C7290'; ctx.font = F(700, 19);
+    ctx.fillText(fmt(cost), cx2, cy2 + 1);
+    ctx.font = F(600, 11);
+    ctx.fillText(BUILD[k].name, cx2, cy2 + 18);
+    if (pr > 0.02) {
+      ctx.strokeStyle = '#2A8C39'; ctx.lineWidth = 6;
+      ctx.beginPath(); ctx.arc(cx2, cy2, ph, -Math.PI/2, -Math.PI/2 + (pr/0.9)*Math.PI*2); ctx.stroke();
+    }
+  });
 
   const sh = L.shred;
   shredA = Math.max(0, Math.min(1, (shredA||0) + (player.carrying.length ? dt2*4 : -dt2*4)));
@@ -1777,7 +1886,7 @@ function render() {
     ctx.fillText('Tray full!', pr.x+pr.w/2, pr.y+pr.h+16);
   }
 
-  station(L.desk, '#A9E3BE', 'Screening desk');
+  if (built('desk')) station(L.desk, '#A9E3BE', 'Screening desk');
   const dk = L.desk;
   ctx.fillStyle = '#5F6E58'; rr(dk.x+18, dk.y+22, 56, 38, 6); ctx.fill();
   ctx.fillStyle = '#CFEFC8'; rr(dk.x+23, dk.y+27, 46, 22, 3); ctx.fill();
@@ -1798,6 +1907,7 @@ function render() {
   pips(dk.x+84, dk.y+12, state.ups.screen, UPS.screen.max);
 
   const z = L.zone;
+  if (built('desk')) {
   const zn = candidates.filter(c=>c.st==='wait').length, zFull = zn >= zoneCap();
   ctx.setLineDash([8,7]); ctx.strokeStyle = zFull ? 'rgba(200,90,60,0.7)' : 'rgba(110,95,65,0.45)'; ctx.lineWidth = 2;
   rr(z.x, z.y, z.w, z.h, 14); ctx.stroke(); ctx.setLineDash([]);
@@ -1807,11 +1917,13 @@ function render() {
   });
   ctx.fillStyle = zFull ? '#B03A2E' : 'rgba(95,70,130,0.8)'; ctx.font = F(600, 13); ctx.textAlign='center';
   ctext('Screened  ' + zn + '/' + zoneCap() + (zFull ? '  ·  screening paused' : ''), z.x+z.w/2, z.y-30);
+  }
 
 
 
-  station(L.booth, '#AFD4F7', 'Interview rooms', '#2C4E77');
+  if (built('booth')) station(L.booth, '#AFD4F7', 'Interview rooms', '#2C4E77');
   const bo = L.booth;
+  if (built('booth')) {
   for (let i=0;i<boothCap();i++) {
     const s = boothSlots[i];
     ctx.fillStyle = 'rgba(255,255,255,0.55)'; rr(s.x-25, bo.y+12, 50, 100, 9); ctx.fill();
@@ -1848,8 +1960,10 @@ function render() {
   });
   ctx.fillStyle = rFull ? '#B03A2E' : 'rgba(60,110,75,0.85)'; ctx.font = F(600, 13); ctx.textAlign='center';
   ctext('Ready to place  ' + rn + '/' + readyCap() + (rFull ? '  ·  interviews paused' : ''), BENCH.x + BENCH.w/2, BENCH.y - 12);
+  }
 
   // the finance exec banks here - give it a building so the loop is legible
+  if (built('bank')) {
   const bk = { x: FIN_POST.x - 42, y: FIN_POST.y - 66, w: 84, h: 62 };
   block3d(bk.x, bk.y, bk.w, bk.h, 9, '#EBDFC6', 10);
   ctx.fillStyle = '#8C6BB1';
@@ -1864,7 +1978,9 @@ function render() {
   ctx.fillText('$', bk.x + bk.w/2, bk.y + 38);
   ctx.fillStyle = 'rgba(95,70,130,0.85)'; ctx.font = F(600, 12);
   ctext('Bank', bk.x + bk.w/2, bk.y - 12);
+  }
 
+  if (built('promo')) {
   const bn = L.banner;
   const promoLocked = !trading();
   const promoReady = !promoLocked && !rushOn && promoCd <= 0;
@@ -1884,8 +2000,9 @@ function render() {
     ctx.strokeStyle = '#C065A8'; ctx.lineWidth = 6;
     ctx.beginPath(); ctx.arc(bn.x+bn.w/2, bn.y+bn.h/2, 56, -Math.PI/2, -Math.PI/2 + (padProg.promo/0.8)*Math.PI*2); ctx.stroke();
   }
+  }
 
-  station(L.mgr, '#DDBDF5', 'Manager desk');
+  if (built('mgr')) station(L.mgr, '#DDBDF5', 'Manager desk');
   if ((padProg.mgr||0) > 0.02) {
     const mc2 = rc(L.mgr);
     ctx.strokeStyle = '#7A3A66'; ctx.lineWidth = 6;
@@ -1905,6 +2022,7 @@ function render() {
   ctx.fillText('Clients', d.x+d.w/2, d.y-8);
 
   const lb = L.lobby;
+  if (built('lobby')) {
   ctx.fillStyle = 'rgba(255,252,242,0.5)'; rr(lb.x, lb.y, lb.w, lb.h, 20); ctx.fill();
   ctx.strokeStyle = 'rgba(120,100,70,0.2)'; ctx.lineWidth = 3; rr(lb.x, lb.y, lb.w, lb.h, 20); ctx.stroke();
   ctx.fillStyle = 'rgba(110,95,65,0.75)'; ctx.font = F(600, 13); ctx.textAlign = 'center';
@@ -1913,6 +2031,7 @@ function render() {
     ctx.fillStyle = 'rgba(120,100,70,0.13)';
     rr(s.x-26, s.y+16, 52, 12, 6); ctx.fill();
   });
+  }
 
   bills.forEach(drawBill);
 
@@ -2040,17 +2159,19 @@ function render() {
   player.carrying.forEach((v,i) =>
     drawResume(player.x + Math.sin(performance.now()/150+i*1.1)*(1.5+i*0.8), player.y-46-i*7, Math.sin(performance.now()/150+i*1.1)*0.1, v));
 
-  const chipW = cashChipWorld();
   crossFx.forEach(c => drawCross(c.x, c.y, 11, Math.min(1, c.life*1.6)));
+  const chipS = cashChipScreen();
+  screenTransform();
   coinFx.forEach(c => {
     if (c.t < 0) return;
     const k = Math.min(1, c.t / c.dur), e2 = k*k*(3-2*k);
-    const tx2 = chipW.x, ty2 = chipW.y;
-    const cx2 = c.x0 + (tx2 - c.x0)*e2, cy2 = c.y0 + (ty2 - c.y0)*e2 - Math.sin(k*Math.PI)*90;
-    ctx.fillStyle = '#FFC93C'; ctx.beginPath(); ctx.arc(cx2, cy2, 8, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#FFE9A8'; ctx.beginPath(); ctx.arc(cx2-2.5, cy2-2.5, 3, 0, Math.PI*2); ctx.fill();
-    ctx.strokeStyle = '#C9922A'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(cx2, cy2, 8, 0, Math.PI*2); ctx.stroke();
+    const sx0 = w2sx(c.x0), sy0 = w2sy(c.y0);
+    const cx2 = sx0 + (chipS.x - sx0)*e2, cy2 = sy0 + (chipS.y - sy0)*e2 - Math.sin(k*Math.PI)*70;
+    ctx.fillStyle = '#FFC93C'; ctx.beginPath(); ctx.arc(cx2, cy2, 9, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#FFE9A8'; ctx.beginPath(); ctx.arc(cx2-3, cy2-3, 3.4, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#C9922A'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(cx2, cy2, 9, 0, Math.PI*2); ctx.stroke();
   });
+  worldTransform();
   parts.forEach(p => {
     ctx.globalAlpha = Math.min(1, p.life*1.6);
     ctx.fillStyle = p.col; ctx.fillRect(p.x-p.sz/2, p.y-p.sz/2, p.sz, p.sz);
@@ -2065,27 +2186,32 @@ function render() {
     ctx.globalAlpha = 1;
   });
 
-  if (state.fast) {
-    ctx.font = FT(14); ctx.textAlign = 'center';
-    const bl = '\u26A1 ' + BOOST_X + 'x';
-    const bbw = ctx.measureText(bl).width + 26;
-    const by2 = rushOn ? 74 : 32;
-    ctx.fillStyle = 'rgba(30,110,128,0.9)';
-    rr(VW/2 - bbw/2, by2, bbw, 30, 15); ctx.fill();
-    ctx.fillStyle = '#EAFBFF'; ctx.fillText(bl, VW/2, by2 + 20);
-  }
+  screenTransform();
+  let pillY = 128;
   if (rushOn) {
     const pulse = 0.75 + Math.sin(performance.now()/160)*0.2;
-    ctx.font = FT(15); ctx.textAlign = 'center';
+    ctx.font = '700 15px Fredoka, sans-serif'; ctx.textAlign = 'center';
     const label = 'PROMO  fees x1.5  ' + Math.ceil(rushLeft) + 's';
-    const bw = ctx.measureText(label).width + 34;
+    const bw = ctx.measureText(label).width + 30;
     ctx.fillStyle = 'rgba(200,80,40,' + (0.82 + 0.16*pulse) + ')';
-    rr(VW/2 - bw/2, 32, bw, 34, 17); ctx.fill();
-    ctx.fillStyle = '#FFF3D6'; ctx.fillText(label, VW/2, 55);
+    rr(cssW/2 - bw/2, pillY, bw, 30, 15); ctx.fill();
+    ctx.fillStyle = '#FFF3D6'; ctx.fillText(label, cssW/2, pillY + 20);
+    pillY += 36;
   }
-  ctx.font = F(500, 13); ctx.textAlign = 'right';
-  ctx.fillStyle = 'rgba(80,55,110,0.6)';
-  ctx.fillText('Placed ' + state.placed + '   Rejected ' + (state.rejected||0) + '   Lost ' + state.lost, -OFFX+VIS_W-16, -OFFY+VIS_H-16);
+  if (state.fast) {
+    ctx.font = '700 14px Fredoka, sans-serif'; ctx.textAlign = 'center';
+    const bl = '\u26A1 ' + BOOST_X + 'x';
+    const bbw = ctx.measureText(bl).width + 24;
+    ctx.fillStyle = 'rgba(30,110,128,0.9)';
+    rr(cssW/2 - bbw/2, pillY, bbw, 27, 13); ctx.fill();
+    ctx.fillStyle = '#EAFBFF'; ctx.fillText(bl, cssW/2, pillY + 18);
+  }
+  worldTransform();
+  screenTransform();
+  ctx.font = F(500, 12); ctx.textAlign = 'right';
+  ctx.fillStyle = 'rgba(80,55,110,0.55)';
+  ctx.fillText('Placed ' + state.placed + '   Rejected ' + (state.rejected||0) + '   Lost ' + state.lost, cssW-12, cssH-12);
+  worldTransform();
   const carrying = player_followers().filter(c => c.done).length;
   if (carrying) {
     const target = clients.find(cl => cl.st==='wait' && cl.need > 0);
@@ -2104,45 +2230,47 @@ function render() {
     const bounce = Math.sin(performance.now()/220)*7;
     // top-row targets carry a station label above them: float the arrow higher so it stays clear
     const ay = t.y - (t.y < 260 ? 108 : 76) + bounce;
-    ctx.fillStyle = '#FFFDF4';
+    ctx.fillStyle = '#5FD16A';
     ctx.beginPath();
-    ctx.moveTo(t.x, ay+20); ctx.lineTo(t.x-13, ay); ctx.lineTo(t.x+13, ay);
+    ctx.moveTo(t.x, ay+26); ctx.lineTo(t.x-17, ay); ctx.lineTo(t.x+17, ay);
     ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = '#3B3227'; ctx.lineWidth = 2.5; ctx.stroke();
+    ctx.strokeStyle = '#2A8C39'; ctx.lineWidth = 3; ctx.stroke();
   }
 
+  screenTransform();
   if (payFlash > 0) {
     ctx.fillStyle = 'rgba(210,80,60,' + Math.min(0.28, payFlash*0.22) + ')';
-    ctx.fillRect(-OFFX, -OFFY, VIS_W, VIS_H);
+    ctx.fillRect(0, 0, cssW, cssH);
   }
   if (!vgCache) {
-    const vcy = -OFFY + VIS_H/2;
-    vgCache = ctx.createRadialGradient(VW/2, vcy, VIS_H*0.34, VW/2, vcy, VIS_H*0.78);
-    vgCache.addColorStop(0, 'rgba(0,0,0,0)'); vgCache.addColorStop(1, 'rgba(60,48,30,0.14)');
+    vgCache = ctx.createRadialGradient(cssW/2, cssH/2, cssH*0.34, cssW/2, cssH/2, cssH*0.78);
+    vgCache.addColorStop(0, 'rgba(0,0,0,0)'); vgCache.addColorStop(1, 'rgba(60,48,30,0.16)');
   }
-  ctx.fillStyle = vgCache; ctx.fillRect(-OFFX, -OFFY, VIS_W, VIS_H);
+  ctx.fillStyle = vgCache; ctx.fillRect(0, 0, cssW, cssH);
 
+  screenTransform();
   if (tourOn) drawTour();
 
   if (joy) {
     ctx.globalAlpha = 0.3;
     ctx.strokeStyle = '#FFF6E4'; ctx.lineWidth = 5;
-    ctx.beginPath(); ctx.arc(joy.o.x, joy.o.y, 54, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(w2sx(joy.o.x), w2sy(joy.o.y), 54, 0, Math.PI*2); ctx.stroke();
     ctx.globalAlpha = 0.75;
-    const kg = ctx.createRadialGradient(joy.o.x+joy.v.x-6, joy.o.y+joy.v.y-8, 4, joy.o.x+joy.v.x, joy.o.y+joy.v.y, 26);
+    const jx = w2sx(joy.o.x) + joy.v.x*WS, jy = w2sy(joy.o.y) + joy.v.y*WS;
+    const kg = ctx.createRadialGradient(jx-6, jy-8, 4, jx, jy, 26);
     kg.addColorStop(0, '#FFFDF4'); kg.addColorStop(1, '#E5D9BC');
     ctx.fillStyle = kg;
-    ctx.beginPath(); ctx.arc(joy.o.x+joy.v.x, joy.o.y+joy.v.y, 25, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(jx, jy, 25, 0, Math.PI*2); ctx.fill();
     ctx.globalAlpha = 1;
   } else if (isCoarse && idleT > 4 && !modalOpen && !panelOpen) {
     const pu = (Math.sin(performance.now()/300)+1)/2;
     ctx.globalAlpha = 0.35 + 0.3*pu;
     ctx.strokeStyle = '#FFF6E4'; ctx.lineWidth = 3;
-    const hy2 = -OFFY + VIS_H - 190;
-    ctx.beginPath(); ctx.arc(VW/2, hy2, 44 + 8*pu, 0, Math.PI*2); ctx.stroke();
+    const hy2 = cssH - 150;
+    ctx.beginPath(); ctx.arc(cssW/2, hy2, 40 + 7*pu, 0, Math.PI*2); ctx.stroke();
     ctx.fillStyle = '#FFF6E4'; ctx.textAlign = 'center';
-    ctx.font = F(600, 30); ctx.fillText('\u261D', VW/2, hy2 + 10);
-    ctx.font = F(600, 15); ctx.fillText('drag to walk', VW/2, hy2 + 62);
+    ctx.font = '600 30px Fredoka, sans-serif'; ctx.fillText('\u261D', cssW/2, hy2 + 10);
+    ctx.font = '600 15px Fredoka, sans-serif'; ctx.fillText('drag to walk', cssW/2, hy2 + 56);
     ctx.globalAlpha = 1;
   }
 }
@@ -2168,8 +2296,24 @@ function loop(t) {
   const pcol = (payrollOn() && state.cash < monthlyDue()) ? '#B4231A' : '#8A5A06';
   if (pc._c !== pcol) { pc._c = pcol; pc.style.color = pcol; }
   const ob = $('objective');
-  if (state.tut < TUT.length && !tourOn) { ob.style.display = 'block'; ob.textContent = TUT[state.tut].txt; }
-  else ob.style.display = 'none';
+  if (state.tut < TUT.length && !tourOn) {
+    const task = TUT[state.tut];
+    ob.style.display = 'flex';
+    if (ob._t !== task.txt) {
+      ob._t = task.txt;
+      $('objText').textContent = task.txt;
+      $('objIcon').textContent = task.icon || '\u{1F4CC}';
+    }
+    const prog = task.done() ? 1 : 0;
+    if (ob._p !== prog) { ob._p = prog; $('objFill').style.width = (prog*100) + '%'; }
+  } else ob.style.display = 'none';
+  const lb = $('lvlBar'), xp = state.xp || 0, lv = lvlOf(xp), into = xp % XP_PER_LEVEL;
+  if (lb._v !== xp) {
+    lb._v = xp;
+    $('lvlNum').textContent = lv;
+    $('lvlFill').style.width = (into / XP_PER_LEVEL * 100) + '%';
+    $('lvlTxt').textContent = into + '/' + XP_PER_LEVEL;
+  }
   if (panelOpen && every('pnl', 0.5)) {
     panelBtns.forEach(x => {
       const can = state.cash >= x.cost;
@@ -2210,6 +2354,9 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) saveG
     state.rejected = Math.max(0, loaded.rejected|0);
     state.payOn = !!loaded.payOn;
     state.fast = !!loaded.fast;
+    state.xp = Math.max(0, loaded.xp|0);
+    state.built = Object.assign({}, loaded.built || {});
+    if (!loaded.built && (state.placed > 0 || state.tut > 0)) buildAll();   // pre-build-system saves
     state.earned = Math.max(0, +loaded.earned || 0);
     state.payT = (typeof loaded.payT === 'number' && loaded.payT > 0) ? Math.min(MONTH, loaded.payT) : MONTH;
     state.months = Math.max(0, loaded.months|0);

@@ -57,6 +57,7 @@ setTimeout(async () => {
     const tick = (n, dt) => { dt = dt || 0.05; for (let i = 0; i < n; i++) { simNow += dt * 1000; update(dt); render(); } };
     const at = (x, y) => { player.x = x; player.y = y; player.trail.unshift({x, y}); };
     const log = [];
+    buildAll();   // the suite tests a finished office; the build-out has its own test
 
     at(rc(L.printer).x+55, rc(L.printer).y); tick(30);
     log.push(['carrying after printer', player.carrying.length]);
@@ -87,7 +88,7 @@ setTimeout(async () => {
     log.push(['led candidate to rooms', 'ok']);
     state.hires.rec = 0; syncEmp();
     state.ups.booth = 0;
-    at(0, 1080);
+    at(30, VH-60);
     candidates.forEach(c => { if (c.st==='booth') c.iT = 0; });
     for (let i = 0; i < 40; i++) { simNow += 50; update(0.05); render(); }
     const awayT = candidates.filter(c=>c.st==='booth').reduce((s,c)=>Math.max(s,c.iT||0), 0);
@@ -112,22 +113,22 @@ setTimeout(async () => {
     log.push(['interviewed', candidates.filter(c=>c.done).length]);
     clients.length = 0; clientT = 9999;
     if (!candidates.some(c => c.st === 'ready'))
-      candidates.push({ x:340, y:668, vert:'bc', st:'ready', rspot:0, owner:null, idx:0, bob:0, readyT:0, done:true });
+      candidates.push({ x:readySpots[0].x, y:readySpots[0].y, vert:'bc', st:'ready', rspot:0, owner:null, idx:0, bob:0, readyT:0, done:true });
     at(BENCH.x+BENCH.w/2, BENCH.y+BENCH.h/2); tick(24);
     if (!player_followers().length) throw new Error('ready pickup failed');
 
     modalOpen = false; panelOpen = false;
     clients.length = 0; clientT = 9999; bills.length = 0;
     candidates.length = 0;
-    candidates.push({ x:600, y:900, vert:'bc', st:'follow', owner:'p', idx:0, bob:0, done:true });
-    clients.push({ x:316, y:992, vert:'bc', need:1, slot:0, patience:99, maxP:99, st:'wait', bob:0, total:1 });
-    at(L.lobby.x+80, L.lobby.y+40); tick(24);
+    candidates.push({ x:clientSlots[0].x+40, y:clientSlots[0].y-60, vert:'bc', st:'follow', owner:'p', idx:0, bob:0, done:true });
+    clients.push({ x:clientSlots[0].x, y:clientSlots[0].y, vert:'bc', need:1, slot:0, patience:99, maxP:99, st:'wait', bob:0, total:1 });
+    at(clientSlots[0].x, clientSlots[0].y - 40); tick(24);
     const paidHere = bills.length ? bills[0].x : null;
     if (!bills.length && state.cash <= 0) throw new Error('walking a candidate to a client did not pay');
     if (paidHere !== null && Math.abs(paidHere - 322) > 110) throw new Error('fee did not drop at the client');
     log.push(['fee dropped at the client', 'ok']);
 
-    at(clientSlots[0].x, clientSlots[0].y+30); tick(60);
+    at(clientSlots[0].x, clientSlots[0].y - 30); tick(60);
     log.push(['cash after scoop', Math.floor(state.cash), 'chain', state.chain]);
     if (state.cash <= 0) throw new Error('cash not collected');
     if (chainMul() !== 1) throw new Error('streak multiplier should be removed');
@@ -172,7 +173,7 @@ setTimeout(async () => {
     state.hires.rec = 1; state.hires.am = 0; syncEmp();
     for (let i = 0; i < 3; i++)
       candidates.push({ x:boothSlots[i].x, y:boothSlots[i].y, vert:'bc', st:'booth', bslot:i, iT:0, owner:null, idx:0, bob:0 });
-    at(0, 1080);
+    at(30, VH-60);
     let sawDone = false, staffWalked = false;
     for (let i = 0; i < 500; i++) {
       simNow += 50; update(0.05); render();
@@ -190,7 +191,7 @@ setTimeout(async () => {
     deskQueue.length = 0; candidates.length = 0; clients.length = 0; clientT = 9999;
     state.payOn = false; state.cash = 0; // keep the payroll latch out of this timing test
     state.hires.rec = 1; state.hires.am = 0; state.hires.sourcer = 0; syncEmp();
-    at(0, 1080);
+    at(30, VH-60);
     for (let i = 0; i < 80; i++) { simNow += 50; update(0.05); render(); } // recruiter settles at post
     candidates.push({ x:zoneSlots[0].x, y:zoneSlots[0].y, vert:'bc', st:'wait', slot:0, owner:null, idx:0, bob:0 });
     let recWalked = false, landed = false;
@@ -210,7 +211,7 @@ setTimeout(async () => {
     log.push(['recruiter fetch and interview', 'ok']);
 
     // fresh-run onboarding: versioned save, pre-filled tray, first client needs exactly one
-    state = freshState(); resetFloor(); modalOpen = false; gameOver = false;
+    state = freshState(); resetFloor(); buildAll(); modalOpen = false; gameOver = false;
     if (freshState().v !== 1) throw new Error('save version missing from freshState');
     if (printerStack.length < 3) throw new Error('fresh tray not pre-filled: ' + printerStack.length);
     clientT = 0.01;
@@ -285,8 +286,8 @@ setTimeout(async () => {
 
     candidates.length = 0; clients.length = 0; clientT = 9999;
     state.hires.am = 0; syncEmp();
-    candidates.push({ x:340, y:668, vert:'it', st:'ready', rspot:0, owner:null, idx:0, bob:0, readyT:0, done:true });
-    at(0, 1080);
+    candidates.push({ x:readySpots[0].x, y:readySpots[0].y, vert:'it', st:'ready', rspot:0, owner:null, idx:0, bob:0, readyT:0, done:true });
+    at(30, VH-60);
     for (let i = 0; i < 900; i++) { simNow += 50; update(0.05); render(); }
     if (candidates.some(c => c.st === 'ready' && c.vert === 'it')) throw new Error('expiry valve failed');
     log.push(['stale candidate cleared', 'ok']);
@@ -315,10 +316,10 @@ setTimeout(async () => {
     state.hires.am = 0; syncEmp();
     candidates.length = 0; clients.length = 0; clientT = 9999; bills.length = 0;
     const base = feeOf('bc');
-    const cl1 = { x:316, y:992, vert:'bc', need:2, slot:0, patience:999, maxP:999, st:'wait', bob:0, total:2 };
+    const cl1 = { x:clientSlots[0].x, y:clientSlots[0].y, vert:'bc', need:2, slot:0, patience:999, maxP:999, st:'wait', bob:0, total:2 };
     clients.push(cl1);
-    candidates.push({ x:600, y:900, vert:'bc', st:'follow', owner:'p', idx:0, bob:0, done:true });
-    at(L.lobby.x+80, L.lobby.y+40);
+    candidates.push({ x:clientSlots[0].x+40, y:clientSlots[0].y-60, vert:'bc', st:'follow', owner:'p', idx:0, bob:0, done:true });
+    at(clientSlots[0].x, clientSlots[0].y - 40);
     for (let i = 0; i < 30; i++) { simNow += 50; update(0.05); render(); }
     const introFee = cl1.feeAcc || 0;
     if (!introFee) throw new Error('personal introduction did not pay');
@@ -330,10 +331,10 @@ setTimeout(async () => {
     clients.length = 0; candidates.length = 0; bills.length = 0;
     state.hires.am = 1; syncEmp();
     emp.ams[0].x = L.lobby.x + 46; emp.ams[0].y = L.lobby.y - 34; emp.ams[0].st = 'idle'; emp.ams[0].batch = null;
-    const cl3 = { x:316, y:992, vert:'bc', need:2, slot:0, patience:999, maxP:999, st:'wait', bob:0, total:2 };
+    const cl3 = { x:clientSlots[0].x, y:clientSlots[0].y, vert:'bc', need:2, slot:0, patience:999, maxP:999, st:'wait', bob:0, total:2 };
     clients.push(cl3);
-    candidates.push({ x:340, y:668, vert:'bc', st:'ready', rspot:0, owner:null, idx:0, bob:0, done:true });
-    at(0, 1080);
+    candidates.push({ x:readySpots[0].x, y:readySpots[0].y, vert:'bc', st:'ready', rspot:0, owner:null, idx:0, bob:0, done:true });
+    at(30, VH-60);
     for (let i = 0; i < 600; i++) { simNow += 50; update(0.05); render(); }
     const amFee = cl3.feeAcc || 0;
     if (!amFee) throw new Error('account manager introduction did not pay');
@@ -346,11 +347,11 @@ setTimeout(async () => {
     // one account manager serves a whole multi-candidate order
     state.hires.am = 3; syncEmp();
     emp.ams.forEach((a,i) => { a.x = L.lobby.x + 46 + i*58; a.y = L.lobby.y - 34; a.st = 'idle'; a.batch = null; });
-    const big = { x:316, y:992, vert:'bc', need:3, slot:0, patience:999, maxP:999, st:'wait', bob:0, total:3 };
+    const big = { x:clientSlots[0].x, y:clientSlots[0].y, vert:'bc', need:3, slot:0, patience:999, maxP:999, st:'wait', bob:0, total:3 };
     clients.push(big);
     for (let i = 0; i < 6; i++)
       candidates.push({ x:340+i*66, y:668, vert:'bc', st:'ready', rspot:i, owner:null, idx:0, bob:0, done:true });
-    at(0, 1080);
+    at(30, VH-60);
     state.ups.staffcap = UPS.staffcap.max;
     const servers = new Set();
     let maxCrew = 0;
@@ -370,9 +371,9 @@ setTimeout(async () => {
     candidates.length = 0; clients.length = 0; clientT = 9999;
     state.hires.am = 1; syncEmp();
     emp.ams[0].st = 'idle'; emp.ams[0].x = L.lobby.x + 46; emp.ams[0].y = L.lobby.y - 34;
-    candidates.push({ x:340, y:668, vert:'bc', st:'ready', rspot:0, owner:null, idx:0, bob:0, done:true });
-    clients.push({ x:316, y:992, vert:'bc', need:1, slot:0, patience:99, maxP:99, st:'wait', bob:0, total:1 });
-    at(0, 1080);
+    candidates.push({ x:readySpots[0].x, y:readySpots[0].y, vert:'bc', st:'ready', rspot:0, owner:null, idx:0, bob:0, done:true });
+    clients.push({ x:clientSlots[0].x, y:clientSlots[0].y, vert:'bc', need:1, slot:0, patience:99, maxP:99, st:'wait', bob:0, total:1 });
+    at(30, VH-60);
     const cashAM = state.cash;
     let sawFetch = false, sawEscort = false;
     for (let i = 0; i < 500; i++) {
@@ -387,7 +388,7 @@ setTimeout(async () => {
     candidates.length = 0; clients.length = 0; bills.length = 0;
 
     // promotion replaces the automatic blitz
-    state.tut = TUT.length; rushOn = false; promoCd = 0; state.cash = 50000;
+    state.tut = TUT.length; buildAll(); rushOn = false; promoCd = 0; state.cash = 50000;
     at(L.banner.x + L.banner.w/2, L.banner.y + L.banner.h/2);
     const cashP = state.cash;
     tick(30);
@@ -397,7 +398,7 @@ setTimeout(async () => {
     rushLeft = 0.01; tick(4);
     if (rushOn) throw new Error('promotion never ended');
     if (promoCd <= 0) throw new Error('promotion has no cooldown');
-    at(0, 1080); tick(10);
+    at(30, VH-60); tick(10);
     if (rushOn) throw new Error('promotion fired without the player');
     log.push(['promotion cooldown', Math.round(promoCd) + 's']);
     if (typeof HIRES.mkt !== 'undefined') throw new Error('marketer role not removed');
@@ -422,7 +423,7 @@ setTimeout(async () => {
     log.push(['hire caps', Object.keys(HIRES).map(k => k + ':' + HIRES[k].max).join(' ')]);
 
     // ---- autoplay pacing bot, fresh game ----
-    state = freshState(); resetFloor(); cashEverPicked = false;
+    state = freshState(); resetFloor(); buildAll(); cashEverPicked = false;
     panelOpen = false; panelOpened = false; modalOpen = false;
     const ms = { firstHire:0, allHires:0, it:0, hc:0, dubai:0, rushes:0, maxChain:0, maxCands:0, maxBills:0, cash10:0, cash20:0, poolFullTicks:0, waitSum:0, ticks:0, earned:0, mismatchSum:0, mismatchTicks:0 };
     let lastCash = 0;
@@ -449,7 +450,7 @@ setTimeout(async () => {
       else if (!state.hires.fin && bills.length) { tx = bills[0].x; ty = bills[0].y; }
       else if (done > 0) {
         const tgt = clients.find(cl => cl.st === 'wait' && cl.need > 0);
-        if (tgt) { tx = tgt.x; ty = tgt.y - 40; } else { tx = L.lobby.x + L.lobby.w/2; ty = L.lobby.y - 40; }
+        if (tgt) { tx = tgt.x; ty = tgt.y - 40; } else { tx = clientSlots[0].x; ty = clientSlots[0].y - 40; }
       }
 
       else if (readyC > 0 && fol.length < followCap()) { tx = BENCH.x + BENCH.w/2; ty = BENCH.y + BENCH.h/2; }
@@ -471,7 +472,7 @@ setTimeout(async () => {
         }
       }
       if (panelOpen && state.tut >= TUT.length) panelOpen = false;
-      if (state.tut === TUT.length - 1 && panelOpened) state.tut = TUT.length;
+      if (state.tut === TUT.length - 1 && panelOpened) state.tut = TUT.length; buildAll();
       if (state.hires.sourcer) {
         if (!state.verts.includes('it') && state.cash >= vertCost('it') + 80) { state.cash -= vertCost('it'); state.verts.push('it'); }
         else if (state.verts.includes('it') && !state.verts.includes('hc') && state.cash >= vertCost('hc') + 150) { state.cash -= vertCost('hc'); state.verts.push('hc'); }
@@ -541,8 +542,8 @@ setTimeout(async () => {
 
 
     // ---- fresh-eyes stress pass ----
-    state = freshState(); resetFloor(); modalOpen = false; panelOpen = false;
-    state.tut = TUT.length;
+    state = freshState(); resetFloor(); buildAll(); modalOpen = false; panelOpen = false;
+    state.tut = TUT.length; buildAll();
     Object.keys(HIRES).forEach(k => { state.hires[k] = HIRES[k].max; });
     Object.keys(UPS).forEach(k => { state.ups[k] = UPS[k].max; });
     state.verts = ['bc','it','hc']; syncEmp();
@@ -569,7 +570,7 @@ setTimeout(async () => {
     if (emp.fins.some(f => f.carry > 0 && f.st === 'idle' && f.n === 0)) throw new Error('fin lost carried cash');
 
     // payroll is charged every month and scales with headcount
-    state = freshState(); resetFloor(); state.tut = TUT.length; gameOver = false; modalOpen = false;
+    state = freshState(); resetFloor(); buildAll(); state.tut = TUT.length; buildAll(); gameOver = false; modalOpen = false;
     state.hires = { sourcer:2, rec:2, am:1, fin:1 }; syncEmp();
     state.payOn = true;
     const due1 = monthlyDue();
@@ -581,7 +582,7 @@ setTimeout(async () => {
     log.push(['payroll charged', fmt(due1) + ' for ' + Object.values(state.hires).reduce((a,b)=>a+b,0) + ' staff']);
 
     // payroll does not start until the gate is banked; the timer holds
-    state = freshState(); resetFloor(); state.tut = TUT.length; gameOver = false; modalOpen = false;
+    state = freshState(); resetFloor(); buildAll(); state.tut = TUT.length; buildAll(); gameOver = false; modalOpen = false;
     state.hires = { sourcer:1, rec:1, am:0, fin:0 }; syncEmp();
     state.cash = PAY_GATE() * 3; state.earned = PAY_GATE() - 100; state.payT = MONTH;
     tick(6);
@@ -599,30 +600,30 @@ setTimeout(async () => {
       if (typeof bad.cash === 'number' && isFinite(bad.cash)) throw new Error('NaN cash test is not exercising the guard');
     }
     // regression: upgrade levels clamp to their maxima (a stale save inflated every price)
-    state = freshState(); resetFloor();
+    state = freshState(); resetFloor(); buildAll();
     state.ups.printer = 99; state.hires.rec = 99;
     state.offices[1] = snapshotOffice();
     state.country = 1; applyOffice(state.offices[1]);
     if (state.ups.printer > UPS.printer.max) throw new Error('ups not clamped on office apply: ' + state.ups.printer);
     if (state.hires.rec > HIRES.rec.max) throw new Error('hires not clamped on office apply: ' + state.hires.rec);
     log.push(['save hardening', 'ups/hires clamped on travel']);
-    state = freshState(); resetFloor(); state.country = 0;
+    state = freshState(); resetFloor(); buildAll(); state.country = 0;
 
     // regression: the drift valve is per-candidate, not one global 1.1s tap
-    state = freshState(); resetFloor(); state.tut = TUT.length; state.payOn = false;
+    state = freshState(); resetFloor(); buildAll(); state.tut = TUT.length; buildAll(); state.payOn = false;
     candidates.length = 0; clients.length = 0; deskQueue.length = 0; clientT = 9999;
-    at(0, 1080);
+    at(30, VH-60);
     for (let i = 0; i < 4; i++)
       candidates.push({ x:zoneSlots[i].x, y:zoneSlots[i].y, vert:'bc', st:'wait', slot:i, owner:null, idx:0, bob:0, waitT:9.5 });
     for (let i = 0; i < 40; i++) { simNow += 50; update(0.05); render(); } // 2s
     const drifted = candidates.filter(c => c.st === 'booth').length;
     if (drifted < 2) throw new Error('drift valve still globally throttled: only ' + drifted + ' moved in 2s');
     log.push(['drift valve per-candidate', drifted + ' candidates seated in 2s']);
-    state = freshState(); resetFloor(); modalOpen = false;
+    state = freshState(); resetFloor(); buildAll(); modalOpen = false;
 
     // interviews can rarely reject - but never while the player is under the floor
     const runInterviews = (cash, n) => {
-      state = freshState(); resetFloor(); state.tut = TUT.length; gameOver = false; modalOpen = false;
+      state = freshState(); resetFloor(); buildAll(); state.tut = TUT.length; buildAll(); gameOver = false; modalOpen = false;
       state.payOn = false; clientT = 9999; clients.length = 0; candidates.length = 0;
       state.cash = cash; state.ups.ready = UPS.ready.max;
       let rejected = 0, done = 0;
@@ -645,10 +646,10 @@ setTimeout(async () => {
     const rate = rich.rejected / 400;
     if (rate > 0.2) throw new Error('post-interview rejection is meant to be rare, got ' + (rate*100).toFixed(0) + '%');
     log.push(['post-interview rejection', '0% under ' + fmt(REJECT_FLOOR()) + ', ' + (rate*100).toFixed(0) + '% above']);
-    state = freshState(); resetFloor(); modalOpen = false;
+    state = freshState(); resetFloor(); buildAll(); modalOpen = false;
 
     // regression: closing the Manager desk while stood on it must not reopen it
-    state = freshState(); resetFloor(); state.tut = TUT.length; modalOpen = false; gameOver = false;
+    state = freshState(); resetFloor(); buildAll(); state.tut = TUT.length; buildAll(); modalOpen = false; gameOver = false;
     panelOpen = false; panelLatch = false;
     at(rc(L.mgr).x, rc(L.mgr).y); tick(30);
     if (!panelOpen) throw new Error('holding at the manager desk did not open the panel');
@@ -660,10 +661,10 @@ setTimeout(async () => {
     if (!panelOpen) throw new Error('panel did not re-arm after walking away');
     closePanel(); panelLatch = false;
     log.push(['manager desk latch', 'stays shut until you walk away']);
-    state = freshState(); resetFloor(); modalOpen = false;
+    state = freshState(); resetFloor(); buildAll(); modalOpen = false;
 
     // regression: staff reservations must never block the player's own hand-off
-    state = freshState(); resetFloor(); state.tut = TUT.length; gameOver = false; modalOpen = false;
+    state = freshState(); resetFloor(); buildAll(); state.tut = TUT.length; buildAll(); gameOver = false; modalOpen = false;
     state.payOn = false; clientT = 9999; candidates.length = 0; clients.length = 0;
     const pcl = { x:clientSlots[0].x, y:clientSlots[0].y, vert:'bc', need:1, slot:0, vip:false,
                   patience:20, maxP:24, st:'wait', bob:0, amClaim:0 };
@@ -675,20 +676,54 @@ setTimeout(async () => {
     tick(20);
     if (state.placed <= pPlaced) throw new Error('player could not deliver while an AM had the order reserved');
     log.push(['player priority', 'hand-off beats an account manager reservation']);
-    state = freshState(); resetFloor(); modalOpen = false;
+    state = freshState(); resetFloor(); buildAll(); modalOpen = false;
+
+    // the office is built station by station, and unbuilt stations do not work
+    state = freshState(); resetFloor(); modalOpen = false; gameOver = false; state.tut = 0;
+    if (Object.keys(state.built).length) throw new Error('a new office should start unbuilt');
+    const dCost = buildCost('desk');
+    // broke: screening cannot run and the pad will not build
+    state.cash = 0;
+    deskQueue.push('bc'); clients.length = 0; clientT = 9999;
+    at(rc(L.desk).x, rc(L.desk).y); tick(100);
+    if (built('desk')) throw new Error('built the desk with no money');
+    if (candidates.length) throw new Error('screening ran without a screening desk');
+    // funded: standing on the pad builds it and charges for it
+    state.cash = dCost + 50;
+    const cashBeforeBuild = state.cash;
+    tick(40);
+    if (!built('desk')) throw new Error('standing on the pad did not build the desk');
+    if (cashBeforeBuild - state.cash < dCost - 1) throw new Error('building did not charge: ' + state.cash);
+    tick(80);
+    if (!candidates.length) throw new Error('screening still dead after building the desk');
+    log.push(['build-out', 'desk ' + fmt(dCost) + ', screening starts only once built']);
+    // a pad you cannot afford does nothing
+    state.cash = 0;
+    at(rc(L.booth).x, rc(L.booth).y); tick(40);
+    if (built('booth')) throw new Error('built an interview room with no money');
+    // tasks advance and award xp
+    const xp0 = state.xp, task0 = state.tut;
+    state.cash = buildCost('booth') + 10;
+    at(rc(L.booth).x, rc(L.booth).y); tick(40);
+    if (!built('booth')) throw new Error('interview room never built');
+    tick(10);
+    if (state.tut <= task0) throw new Error('task did not advance after building');
+    if (state.xp <= xp0) throw new Error('no xp awarded for a task');
+    log.push(['tasks', 'task ' + task0 + ' -> ' + state.tut + ', xp ' + xp0 + ' -> ' + state.xp + ', level ' + lvlOf(state.xp)]);
+    state = freshState(); resetFloor(); buildAll(); modalOpen = false;
 
     // game speed is a setting now, not a pad you pay for
-    state = freshState(); resetFloor(); state.tut = TUT.length; gameOver = false; modalOpen = false;
+    state = freshState(); resetFloor(); buildAll(); state.tut = TUT.length; buildAll(); gameOver = false; modalOpen = false;
     if (state.fast) throw new Error('fast mode should default off');
     if (timeScale() !== 1) throw new Error('time scale should start at 1x');
     state.fast = true;
     if (timeScale() !== BOOST_X) throw new Error('fast mode did not change the time scale');
     if (typeof L.turbo !== 'undefined') throw new Error('the turbo pad is still on the floor');
     log.push(['game speed setting', '1x / ' + BOOST_X + 'x toggle, no pad']);
-    state = freshState(); resetFloor(); modalOpen = false;
+    state = freshState(); resetFloor(); buildAll(); modalOpen = false;
 
     // software subscriptions are charged with payroll and can be cancelled
-    state = freshState(); resetFloor(); state.tut = TUT.length; modalOpen = false; gameOver = false;
+    state = freshState(); resetFloor(); buildAll(); state.tut = TUT.length; buildAll(); modalOpen = false; gameOver = false;
     state.placed = 60; state.cash = 50000; state.payOn = true;
     if (subsTotal() !== 0) throw new Error('a fresh office should owe no software fees');
     state.ups.screen = 2; state.ups.aiint = 1;
@@ -707,7 +742,7 @@ setTimeout(async () => {
     panelOpen = false;
 
     // upgrades reveal progressively instead of dumping the whole catalogue
-    state = freshState(); resetFloor(); state.tut = TUT.length; state.placed = 0; state.cash = 50000;
+    state = freshState(); resetFloor(); buildAll(); state.tut = TUT.length; buildAll(); state.placed = 0; state.cash = 50000;
     at(rc(L.mgr).x, rc(L.mgr).y); tick(30);
     const earlyRows = els['panelRows'].children.filter(r => r.className && r.className.includes('tb-ups')).length;
     state.placed = 60; buildPanel();
@@ -715,10 +750,10 @@ setTimeout(async () => {
     if (earlyRows >= lateRows) throw new Error('upgrade list did not grow with progress: ' + earlyRows + ' vs ' + lateRows);
     if (earlyRows > 6) throw new Error('too many upgrades shown at the start: ' + earlyRows);
     log.push(['staged upgrades', earlyRows + ' rows at 0 placements -> ' + lateRows + ' at 60']);
-    panelOpen = false; state = freshState(); resetFloor(); modalOpen = false;
+    panelOpen = false; state = freshState(); resetFloor(); buildAll(); modalOpen = false;
 
     // regression: travelling between owned offices via the country chip must work
-    state = freshState(); resetFloor(); state.tut = TUT.length; modalOpen = false; gameOver = false;
+    state = freshState(); resetFloor(); buildAll(); state.tut = TUT.length; buildAll(); modalOpen = false; gameOver = false;
     state.placed = 20; state.offices[0] = snapshotOffice();
     state.country = 1; applyOffice(null); resetFloor(); applyHud();
     if (ownedOffices().length < 2) throw new Error('two offices should be owned');
@@ -729,10 +764,10 @@ setTimeout(async () => {
     goBtn.onclick();
     if (state.country !== 0) throw new Error('travel back to India failed: country=' + state.country);
     log.push(['office travel', 'Dubai -> India ok']);
-    state = freshState(); resetFloor(); modalOpen = false;
+    state = freshState(); resetFloor(); buildAll(); modalOpen = false;
 
     // the Manager desk offers a working "Start over" that wipes progress
-    state = freshState(); resetFloor(); state.tut = TUT.length; modalOpen = false; gameOver = false;
+    state = freshState(); resetFloor(); buildAll(); state.tut = TUT.length; buildAll(); modalOpen = false; gameOver = false;
     state.cash = 9000; state.placed = 42; state.hires = { sourcer:2, rec:1, am:1, fin:1 }; syncEmp();
     state.ups.printer = 3; state.payOn = true;
     panelOpen = false; at(rc(L.mgr).x, rc(L.mgr).y); tick(30);
@@ -746,12 +781,12 @@ setTimeout(async () => {
     if (state.placed !== 0 || state.ups.printer !== 0 || state.payOn) throw new Error('reset did not clear progress');
     if (state.cash !== START_CASH) throw new Error('reset did not restore starting cash: ' + state.cash);
     log.push(['start over', 'wipes progress, back to ' + fmt(START_CASH)]);
-    state = freshState(); resetFloor(); modalOpen = false; panelOpen = false;
+    state = freshState(); resetFloor(); buildAll(); modalOpen = false; panelOpen = false;
 
     // client patience is not inert: an unservable client eventually walks out
-    state = freshState(); resetFloor(); state.tut = TUT.length; gameOver = false; modalOpen = false;
+    state = freshState(); resetFloor(); buildAll(); state.tut = TUT.length; buildAll(); gameOver = false; modalOpen = false;
     state.payOn = false; candidates.length = 0; clients.length = 0; bills.length = 0;
-    clientT = 9999; at(0, 1080);
+    clientT = 9999; at(30, VH-60);
     spawnClient();
     if (!clients.length) throw new Error('no client spawned for the patience test');
     const pc0 = clients[0], lost0 = state.lost, maxP0 = pc0.maxP;
@@ -759,7 +794,7 @@ setTimeout(async () => {
     for (let i = 0; i < Math.ceil((maxP0 + 20) / 0.05) && state.lost === lost0; i++) { simNow += 50; update(0.05); render(); }
     if (state.lost <= lost0) throw new Error('client patience is inert: nobody walked out after ' + Math.round(maxP0) + 's');
     log.push(['patience expires', 'walkout after ~' + Math.round(maxP0) + 's']);
-    state = freshState(); resetFloor(); modalOpen = false;
+    state = freshState(); resetFloor(); buildAll(); modalOpen = false;
 
     // a fresh office starts funded and payroll-free
     const fs2 = freshState();
@@ -768,7 +803,7 @@ setTimeout(async () => {
     log.push(['fresh start', fmt(START_CASH) + ', payroll idle']);
 
     // a short payday goes negative: no loans, no instant death
-    state = freshState(); resetFloor(); state.tut = TUT.length; gameOver = false; modalOpen = false;
+    state = freshState(); resetFloor(); buildAll(); state.tut = TUT.length; buildAll(); gameOver = false; modalOpen = false;
     state.hires = { sourcer:1, rec:1, am:0, fin:0 }; syncEmp(); state.payOn = true;
     state.cash = 10; state.payT = 0.02;
     tick(4);
@@ -792,10 +827,10 @@ setTimeout(async () => {
     if ('debt' in freshState()) throw new Error('freshState still carries debt');
     if (freshState().payOn !== false) throw new Error('freshState missing payOn');
     log.push(['loan system removed', 'ok']);
-    state = freshState(); resetFloor(); modalOpen = false;
+    state = freshState(); resetFloor(); buildAll(); modalOpen = false;
 
     // multi-office empire: snapshot, travel back, passive income
-    state = freshState(); resetFloor(); state.tut = TUT.length;
+    state = freshState(); resetFloor(); buildAll(); state.tut = TUT.length; buildAll();
     state.ups.speed = 3; state.hires.sourcer = 2; syncEmp();
     state.cash = COUNTRIES[0].moveCost + 500;
     state.offices[state.country] = snapshotOffice();
@@ -813,7 +848,7 @@ setTimeout(async () => {
     travelTo(1);
     if (state.ups.speed !== 0) throw new Error('second office state clobbered');
     log.push(['travel round trip', 'ok']);
-    state = freshState(); resetFloor();
+    state = freshState(); resetFloor(); buildAll();
 
     // rapid country moves with live state
     state.cash = 999999;
@@ -848,7 +883,7 @@ setTimeout(async () => {
     if (state.verts.includes('zz')) throw new Error('invalid vertical survived load');
 
     // zero-staff manual soak
-    state = freshState(); resetFloor(); state.tut = TUT.length; syncEmp();
+    state = freshState(); resetFloor(); buildAll(); state.tut = TUT.length; buildAll(); syncEmp();
     for (let i = 0; i < 2400; i++) { simNow += 50; update(0.05); render(); }
     log.push(['STRESS no-staff 2min ok, deskQueue', deskQueue.length, 'printer', printerStack.length]);
 
