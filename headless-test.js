@@ -677,23 +677,14 @@ setTimeout(async () => {
     log.push(['player priority', 'hand-off beats an account manager reservation']);
     state = freshState(); resetFloor(); modalOpen = false;
 
-    // the turbo pad charges money and speeds the office up for a while
+    // game speed is a setting now, not a pad you pay for
     state = freshState(); resetFloor(); state.tut = TUT.length; gameOver = false; modalOpen = false;
-    state.payOn = false; state.placed = 10; clientT = 9999; clients.length = 0; candidates.length = 0;
-    state.cash = boostCost() * 3;
-    if (timeScale() !== 1) throw new Error('office is boosted before anyone paid');
-    const tcash = state.cash, tc = { x:L.turbo.x+L.turbo.w/2, y:L.turbo.y+L.turbo.h/2 };
-    at(tc.x, tc.y);
-    for (let i = 0; i < 40 && !boostLeft; i++) { simNow += 50; update(0.05); render(); }
-    if (!boostLeft) throw new Error('holding the turbo pad did not start a boost');
-    if (state.cash >= tcash) throw new Error('turbo was free');
-    if (timeScale() !== BOOST_X) throw new Error('time scale did not change: ' + timeScale());
-    log.push(['turbo', fmt(tcash - state.cash) + ' for ' + BOOST_X + 'x / ' + BOOST_SECS + 's']);
-    for (let i = 0; i < (BOOST_SECS + 1) * 20; i++) { simNow += 50; update(0.05); render(); }
-    if (boostLeft > 0) throw new Error('boost never expired');
-    if (timeScale() !== 1) throw new Error('speed did not return to normal');
-    if (boostCd <= 0) throw new Error('no cooldown after a boost');
-    log.push(['turbo expiry', 'back to 1x with a ' + Math.round(boostCd) + 's cooldown']);
+    if (state.fast) throw new Error('fast mode should default off');
+    if (timeScale() !== 1) throw new Error('time scale should start at 1x');
+    state.fast = true;
+    if (timeScale() !== BOOST_X) throw new Error('fast mode did not change the time scale');
+    if (typeof L.turbo !== 'undefined') throw new Error('the turbo pad is still on the floor');
+    log.push(['game speed setting', '1x / ' + BOOST_X + 'x toggle, no pad']);
     state = freshState(); resetFloor(); modalOpen = false;
 
     // software subscriptions are charged with payroll and can be cancelled
