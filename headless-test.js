@@ -647,6 +647,21 @@ setTimeout(async () => {
     log.push(['post-interview rejection', '0% under ' + fmt(REJECT_FLOOR()) + ', ' + (rate*100).toFixed(0) + '% above']);
     state = freshState(); resetFloor(); modalOpen = false;
 
+    // regression: closing the Manager desk while stood on it must not reopen it
+    state = freshState(); resetFloor(); state.tut = TUT.length; modalOpen = false; gameOver = false;
+    panelOpen = false; panelLatch = false;
+    at(rc(L.mgr).x, rc(L.mgr).y); tick(30);
+    if (!panelOpen) throw new Error('holding at the manager desk did not open the panel');
+    closePanel();
+    tick(60);                                   // still standing in the exact same spot
+    if (panelOpen) throw new Error('panel reopened while the player never moved');
+    at(rc(L.booth).x, L.booth.y + 210); tick(10);   // walk away
+    at(rc(L.mgr).x, rc(L.mgr).y); tick(30);         // and back
+    if (!panelOpen) throw new Error('panel did not re-arm after walking away');
+    closePanel(); panelLatch = false;
+    log.push(['manager desk latch', 'stays shut until you walk away']);
+    state = freshState(); resetFloor(); modalOpen = false;
+
     // regression: staff reservations must never block the player's own hand-off
     state = freshState(); resetFloor(); state.tut = TUT.length; gameOver = false; modalOpen = false;
     state.payOn = false; clientT = 9999; candidates.length = 0; clients.length = 0;

@@ -41,8 +41,12 @@
   #toast { position:absolute; bottom:calc(26px + env(safe-area-inset-bottom, 0px)); left:50%; transform:translateX(-50%); background:var(--shade); backdrop-filter:blur(3px); color:#FFF6E4; padding:11px 20px; border-radius:16px; font-size:14px; font-weight:500; z-index:8; pointer-events:none; opacity:0; transition:opacity 0.3s, transform 0.3s; box-shadow:0 4px 0 rgba(0,0,0,0.2); }
   .ov { position:absolute; inset:0; background:rgba(20,16,10,0.5); z-index:10; display:none; align-items:flex-end; justify-content:center; }
   .ov.show { display:flex; }
-  .grab { width:46px; height:5px; border-radius:3px; background:#D8C6E8; margin:2px auto 8px; }
-  .card { background:var(--paper); touch-action:none; width:100%; max-height:82%; border-radius:26px 26px 0 0; padding:10px 14px 24px; overflow-y:auto; box-shadow:0 -8px 30px rgba(0,0,0,0.3); }
+  .grabzone { position:sticky; top:0; z-index:2; background:var(--paper); padding:9px 0 7px; margin:0 -14px 2px;
+    touch-action:none; cursor:grab; }
+  .grab { width:46px; height:5px; border-radius:3px; background:#D8C6E8; margin:0 auto; }
+  .card { background:var(--paper); touch-action:pan-y; -webkit-overflow-scrolling:touch; width:100%; max-height:82%;
+    border-radius:26px 26px 0 0; padding:0 14px calc(28px + env(safe-area-inset-bottom, 0px)); overflow-y:auto;
+    overscroll-behavior:contain; box-shadow:0 -8px 30px rgba(0,0,0,0.3); }
   .handle { width:44px; height:5px; border-radius:3px; background:#D8CCB2; margin:2px auto 10px; }
   .phead { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
   .phead h2 { font-size:19px; color:var(--ink); }
@@ -114,7 +118,7 @@
   </div>
   <div class="ov" id="panel">
     <div class="card t-team" id="panelCard">
-      <div class="grab"></div>
+      <div class="grabzone" id="panelGrab"><div class="grab"></div></div>
       <div class="handle"></div>
       <div class="phead"><h2>Manager desk</h2><div class="pcash" id="panelCash">$0</div></div>
       <div class="tabs">
@@ -181,7 +185,7 @@ const UPCATS = [
 ];
 const PEOPLE_SC = 1.8;   // one dial for how chunky everyone reads (~7% of screen height on a phone;
                          // measured Pizza Ready sits at 7.8-10.7%, but it uses a follow camera)
-const CAND_SC = 0.82 * PEOPLE_SC;
+const CAND_SC = 0.62 * PEOPLE_SC;   // candidates read smaller than staff so queues breathe
 const STAFF_UNIFORM = '#4A5160';
 const ROLE_TAG = { sourcer:'S', rec:'R', am:'A', fin:'F' };
 const SALARY = { sourcer:17, rec:23, am:29, fin:20 };
@@ -599,27 +603,25 @@ function openPanel() {
 function closePanel() { panelOpen = false; $('panel').classList.remove('show'); const c = $('panelCard'); if (c && c.style) c.style.transform = ''; }
 $('panelClose').onclick = closePanel;
 (function panelDrag() {
-  const card = $('panelCard');
-  if (!card || !card.addEventListener) return;
+  const card = $('panelCard'), grab = $('panelGrab');
+  if (!card || !grab || !grab.addEventListener) return;
   let sy = null, dy = 0;
-  card.addEventListener('pointerdown', e => {
-    // only start a dismiss drag from the top strip or from non-scrolled content
-    if (card.scrollTop > 4 && e.clientY - card.getBoundingClientRect().top > 48) return;
+  grab.addEventListener('pointerdown', e => {
     sy = e.clientY; dy = 0;
+    if (grab.setPointerCapture) try { grab.setPointerCapture(e.pointerId); } catch(err) {}
   });
-  card.addEventListener('pointermove', e => {
+  grab.addEventListener('pointermove', e => {
     if (sy === null) return;
     dy = Math.max(0, e.clientY - sy);
-    if (dy > 4) { card.style.transform = 'translateY(' + dy + 'px)'; e.preventDefault(); }
+    if (dy > 3) card.style.transform = 'translateY(' + dy + 'px)';
   });
   const end = () => {
     if (sy === null) return;
-    if (dy > 90) closePanel(); else card.style.transform = '';
+    if (dy > 80) closePanel(); else card.style.transform = '';
     sy = null; dy = 0;
   };
-  card.addEventListener('pointerup', end);
-  card.addEventListener('pointercancel', end);
-  card.addEventListener('pointerleave', end);
+  grab.addEventListener('pointerup', end);
+  grab.addEventListener('pointercancel', end);
 })();
 ['tabTeam','tabUps','tabVerts'].forEach(id => {
   const el = $(id);
@@ -1470,18 +1472,20 @@ function update(dt) {
   const frontier = Math.max.apply(null, ownedOffices()) === state.country;
   if (isFinite(mc) && frontier) {
     const near = dist(player.x,player.y,ec.x,ec.y+30) < 76;
-    if (near && state.cash >= mc && !modalOpen && !tourOn) {
+    if (!near) exitLatch = false;
+    if (near && !exitLatch && state.cash >= mc && !modalOpen && !tourOn) {
       padProg.exit = (padProg.exit||0) + dt;
-      if (padProg.exit >= 0.7) { padProg.exit = 0; spendConfirmCountry(); }
+      if (padProg.exit >= 0.7) { padProg.exit = 0; exitLatch = true; spendConfirmCountry(); }
     } else padProg.exit = Math.max(0, (padProg.exit||0) - dt*2);
   }
 
   const mgc = rc(L.mgr);
   // hold to open, like the promo stand - walking past no longer yanks you into a menu
   const nearM = dist(player.x,player.y,mgc.x,mgc.y) < 88;
-  if (nearM && !panelOpen && !modalOpen && !tourOn) {
+  if (!nearM) panelLatch = false;                       // walk away to re-arm the desk
+  if (nearM && !panelOpen && !modalOpen && !tourOn && !panelLatch) {
     padProg.mgr = (padProg.mgr||0) + dt;
-    if (padProg.mgr >= 0.55) { padProg.mgr = 0; openPanel(); }
+    if (padProg.mgr >= 0.55) { padProg.mgr = 0; panelLatch = true; openPanel(); }
   } else padProg.mgr = Math.max(0, (padProg.mgr||0) - dt*2);
 
   const pInc = passiveRate()/60*dt;
