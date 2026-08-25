@@ -444,7 +444,7 @@ const subsTotal = () => {
 };
 const monthlyDue = () => payrollTotal() + subsTotal();
 const trading = () => state.tut >= TUT.length || state.placed >= 3;
-const START_CASH = 1000;
+const START_CASH = 5000;
 const PAY_GATE = () => 5000 * mul();
 const INTERVIEW_REJECT = 0.025;                // rare: most interviews still pass
 const REJECT_FLOOR = () => 1000 * mul();       // below this the interview never rejects
