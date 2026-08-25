@@ -210,7 +210,7 @@ const UPCATS = [
   ['Marketing', ['ads','rep','patience','vipnet']],
   ['Office', ['booth','zone','ready','slots']]
 ];
-const PEOPLE_SC = 1.8;   // one dial for how chunky everyone reads (~7% of screen height on a phone;
+const PEOPLE_SC = 1.25;  // with the follow camera this reads ~5.5% of screen height, close to the reference
                          // measured Pizza Ready sits at 7.8-10.7%, but it uses a follow camera)
 const CAND_SC = 0.62 * PEOPLE_SC;   // candidates read smaller than staff so queues breathe
 const STAFF_UNIFORM = '#4A5160';
@@ -1644,15 +1644,23 @@ function shade(hex, f) {
   b2 = Math.max(0, Math.min(255, Math.round(b2*f)));
   return '#' + ((1<<24) + (r2<<16) + (g2<<8) + b2).toString(16).slice(1);
 }
+// A solid block seen from a 3/4 camera: cast shadow, front and side faces, then the lit top.
 function block3d(x, y, w, hh, depth, top, r) {
-  ctx.fillStyle = 'rgba(45,35,20,0.2)';
-  rr(x+4, y+depth+7, w, hh, r); ctx.fill();
-  ctx.fillStyle = shade(top, 0.72);
-  rr(x, y+hh-r, w, depth+r, r); ctx.fill();
-  ctx.fillStyle = top;
+  const d = depth * 1.9;
+  ctx.fillStyle = 'rgba(45,35,20,0.17)';
+  rr(x + d*0.55, y + d + 6, w, hh, r); ctx.fill();
+  ctx.fillStyle = shade(top, 0.52);                 // right side face, away from the light
+  rr(x + 5, y + 5, w, hh + d, r); ctx.fill();
+  ctx.fillStyle = shade(top, 0.66);                 // front face
+  rr(x, y + hh - r, w, d + r, r); ctx.fill();
+  ctx.fillStyle = top;                              // lit top
   rr(x, y, w, hh, r); ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,0.28)';
-  rr(x+4, y+3, w-8, 6, 3); ctx.fill();
+  const g = ctx.createLinearGradient(x, y, x, y + hh);
+  g.addColorStop(0, 'rgba(255,255,255,0.34)'); g.addColorStop(0.55, 'rgba(255,255,255,0.05)');
+  g.addColorStop(1, 'rgba(0,0,0,0.05)');
+  ctx.fillStyle = g; rr(x, y, w, hh, r); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';          // top-edge highlight
+  rr(x + 6, y + 4, w - 12, 5, 3); ctx.fill();
 }
 function rr(x, y, w, h, r) {
   ctx.beginPath();
@@ -1660,24 +1668,30 @@ function rr(x, y, w, h, r) {
   ctx.arcTo(x, y+h, x, y, r); ctx.arcTo(x, y, x+w, y, r); ctx.closePath();
 }
 function shadow(x, y, w) {
-  ctx.fillStyle = 'rgba(60,50,35,0.16)';
-  ctx.beginPath(); ctx.ellipse(x, y, w, w*0.42, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(52,40,28,0.11)';
+  ctx.beginPath(); ctx.ellipse(x + w*0.22, y + 2, w*1.05, w*0.4, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(52,40,28,0.17)';
+  ctx.beginPath(); ctx.ellipse(x + w*0.12, y, w*0.72, w*0.28, 0, 0, Math.PI*2); ctx.fill();
 }
 function drawStaff(u, tag) {
   const s = PEOPLE_SC;
   const bob = u.mv || (u.st && u.st !== 'idle') ? Math.sin(performance.now()/70 + u.o)*2.4 : Math.sin(performance.now()/420 + u.o)*1.1;
   shadow(u.x, u.y+16*s, 14*s);
   const by = u.y + bob;
-  const sg = ctx.createLinearGradient(u.x, by-12*s, u.x, by+18*s);
-  sg.addColorStop(0, STAFF_UNIFORM); sg.addColorStop(1, shade(STAFF_UNIFORM, 0.78));
+  const sg = ctx.createLinearGradient(u.x-11*s, by-12*s, u.x+12*s, by+18*s);
+  sg.addColorStop(0, shade(STAFF_UNIFORM, 1.3)); sg.addColorStop(0.45, STAFF_UNIFORM); sg.addColorStop(1, shade(STAFF_UNIFORM, 0.6));
   ctx.fillStyle = sg;
   rr(u.x-11*s, by-11*s, 22*s, 28*s, 10*s); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.16)';
+  rr(u.x-9*s, by-9*s, 6*s, 20*s, 3*s); ctx.fill();
   ctx.fillStyle = '#EDE7DA';
   ctx.beginPath(); ctx.moveTo(u.x-7*s, by-11*s); ctx.lineTo(u.x, by-2*s); ctx.lineTo(u.x+7*s, by-11*s); ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#F2C9A0';
+  const shg = ctx.createRadialGradient(u.x-4*s, by-25*s, 1.4*s, u.x, by-21*s, 12*s);
+  shg.addColorStop(0, '#FFE0C0'); shg.addColorStop(0.6, '#F2C9A0'); shg.addColorStop(1, '#D8A87E');
+  ctx.fillStyle = shg;
   ctx.beginPath(); ctx.arc(u.x, by-21*s, 11*s, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,0.35)';
-  ctx.beginPath(); ctx.arc(u.x-4*s, by-25*s, 3.2*s, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.beginPath(); ctx.ellipse(u.x-4*s, by-25*s, 3.6*s, 2.7*s, -0.5, 0, Math.PI*2); ctx.fill();
   ctx.fillStyle = '#33261A';
   ctx.beginPath(); ctx.arc(u.x, by-24*s, 10.5*s, Math.PI, 0); ctx.fill();
   ctx.fillStyle = '#FFFFFF';
@@ -1692,18 +1706,32 @@ function drawPerson(x, y, sc, shirt, opts) {
   const bob = opts.moving ? Math.sin(performance.now()/70 + (opts.seed||0))*2.4 : Math.sin(performance.now()/420 + (opts.seed||0))*1.1;
   shadow(x, y+18*sc, 15*sc);
   const by = y + bob;
-  const bg = ctx.createLinearGradient(x, by-14*sc, x, by+18*sc);
-  bg.addColorStop(0, shirt); bg.addColorStop(1, shade(shirt, 0.8));
+  // torso: lit from the upper left, darker on the right, with a rim highlight
+  const bg = ctx.createLinearGradient(x-12*sc, by-14*sc, x+13*sc, by+18*sc);
+  bg.addColorStop(0, shade(shirt, 1.14)); bg.addColorStop(0.45, shirt); bg.addColorStop(1, shade(shirt, 0.62));
   ctx.fillStyle = bg;
   rr(x-12*sc, by-12*sc, 24*sc, 30*sc, 11*sc); ctx.fill();
+  ctx.strokeStyle = 'rgba(40,28,18,0.20)'; ctx.lineWidth = 1.6*sc;
+  rr(x-12*sc, by-12*sc, 24*sc, 30*sc, 11*sc); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.22)';
+  rr(x-9.5*sc, by-10*sc, 7*sc, 22*sc, 4*sc); ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,0.10)';
+  rr(x+4.5*sc, by-10*sc, 7*sc, 24*sc, 4*sc); ctx.fill();
   if (opts.tie) {
     ctx.fillStyle = opts.tie;
     ctx.beginPath(); ctx.moveTo(x, by-8*sc); ctx.lineTo(x+4*sc, by+2*sc); ctx.lineTo(x, by+10*sc); ctx.lineTo(x-4*sc, by+2*sc); ctx.closePath(); ctx.fill();
   }
-  ctx.fillStyle = opts.skin || '#F2C9A0';
+  const skin = opts.skin || '#F2C9A0';
+  const hg = ctx.createRadialGradient(x-4*sc, by-27*sc, 1.5*sc, x, by-23*sc, 13*sc);
+  hg.addColorStop(0, shade(skin, 1.12)); hg.addColorStop(0.6, skin); hg.addColorStop(1, shade(skin, 0.78));
+  ctx.fillStyle = hg;
   ctx.beginPath(); ctx.arc(x, by-23*sc, 12*sc, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,0.35)';
-  ctx.beginPath(); ctx.arc(x-4*sc, by-27*sc, 3.5*sc, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = 'rgba(40,28,18,0.16)'; ctx.lineWidth = 1.4*sc;
+  ctx.beginPath(); ctx.arc(x, by-23*sc, 12*sc, 0, Math.PI*2); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.beginPath(); ctx.ellipse(x-4.5*sc, by-27.5*sc, 4*sc, 3*sc, -0.5, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,0.07)';
+  ctx.beginPath(); ctx.ellipse(x, by-13.5*sc, 10*sc, 3*sc, 0, 0, Math.PI*2); ctx.fill();
   ctx.fillStyle = opts.hair || '#4A3826';
   ctx.beginPath(); ctx.arc(x, by-26*sc, 11*sc, Math.PI, 0); ctx.fill();
   if (opts.case) {
@@ -1777,16 +1805,26 @@ function drawStaticLayer(C) {
   const vx = -BG_M, vy = -BG_M, bw = VW + BG_M*2, bh = VH + BG_M*2;
   ctx.clearRect(vx, vy, bw, bh);
   ctx.fillStyle = C.floorA; ctx.fillRect(vx, vy, bw, bh);
-  ctx.fillStyle = C.floorB;
   const ts = 96;
-  for (let ty=Math.floor(vy/ts); ty<(vy+bh)/ts; ty++) for (let tx=Math.floor(vx/ts); tx<(vx+bw)/ts; tx++)
-    if (((tx%2)+2)%2 === ((ty%2)+2)%2) ctx.fillRect(tx*ts, ty*ts, ts, ts);
+  for (let ty=Math.floor(vy/ts); ty<(vy+bh)/ts; ty++) for (let tx=Math.floor(vx/ts); tx<(vx+bw)/ts; tx++) {
+    if (((tx%2)+2)%2 !== ((ty%2)+2)%2) continue;
+    ctx.fillStyle = C.floorB; ctx.fillRect(tx*ts, ty*ts, ts, ts);
+    // a lit top edge and a shaded bottom edge make the tiles read as slabs
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(tx*ts, ty*ts, ts, 3);
+    ctx.fillStyle = 'rgba(90,70,40,0.07)'; ctx.fillRect(tx*ts, ty*ts + ts - 4, ts, 4);
+  }
   const pool = ctx.createRadialGradient(VW/2, VH/2, 200, VW/2, VH/2, VH*0.72);
   pool.addColorStop(0, 'rgba(255,250,230,0.32)'); pool.addColorStop(1, 'rgba(255,250,230,0)');
   ctx.fillStyle = pool; ctx.fillRect(vx, vy, bw, bh);
   ctx.fillStyle = C.wall; ctx.fillRect(vx, vy, bw, 96 - vy);
-  ctx.fillStyle = shade(C.wall, 0.78); ctx.fillRect(vx, 86, bw, 12);
-  ctx.fillStyle = 'rgba(0,0,0,0.1)'; ctx.fillRect(vx, 98, bw, 6);
+  const wg = ctx.createLinearGradient(0, 96 - 150, 0, 96);
+  wg.addColorStop(0, 'rgba(0,0,0,0)'); wg.addColorStop(1, 'rgba(0,0,0,0.14)');
+  ctx.fillStyle = wg; ctx.fillRect(vx, 96 - 150, bw, 150);
+  ctx.fillStyle = shade(C.wall, 1.18); ctx.fillRect(vx, 82, bw, 6);      // cornice catching the light
+  ctx.fillStyle = shade(C.wall, 0.7); ctx.fillRect(vx, 88, bw, 12);      // its underside
+  const fg = ctx.createLinearGradient(0, 100, 0, 150);
+  fg.addColorStop(0, 'rgba(40,30,15,0.22)'); fg.addColorStop(1, 'rgba(40,30,15,0)');
+  ctx.fillStyle = fg; ctx.fillRect(vx, 100, bw, 50);                     // floor shadow under the wall
   ctx.fillStyle = 'rgba(120,100,70,0.1)';
   rr(L.door.x+L.door.w+6, L.door.y+34, 62, 44, 8); ctx.fill();
   ctx = prev;
@@ -1810,13 +1848,14 @@ function render() {
     ctx.setLineDash([10, 8]);
     ctx.strokeStyle = afford ? 'rgba(90,60,130,0.55)' : 'rgba(120,110,130,0.35)';
     ctx.lineWidth = 3; rr(r.x, r.y, r.w, r.h, 16); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle = afford ? 'rgba(255,236,190,0.5)' : 'rgba(220,214,226,0.4)';
+    ctx.fillStyle = afford ? 'rgba(255,236,190,0.45)' : 'rgba(220,214,226,0.38)';
     rr(r.x, r.y, r.w, r.h, 16); ctx.fill();
+    ctx.fillStyle = 'rgba(70,55,30,0.09)';
+    rr(r.x+6, r.y+6, r.w-12, 8, 4); ctx.fill();
     const cx2 = r.x + r.w/2, cy2 = r.y + r.h/2;
     const pw = 132, ph = 54;
-    ctx.fillStyle = afford ? '#FFF3C4' : '#E4DFEA';
-    rr(cx2-pw/2, cy2-ph/2, pw, ph, 14); ctx.fill();
-    ctx.strokeStyle = afford ? '#E0961A' : '#B9AEC6'; ctx.lineWidth = 3;
+    block3d(cx2-pw/2, cy2-ph/2, pw, ph, 7, afford ? '#FFE9A8' : '#E4DFEA', 14);
+    ctx.strokeStyle = afford ? '#E0961A' : '#B9AEC6'; ctx.lineWidth = 2.5;
     rr(cx2-pw/2, cy2-ph/2, pw, ph, 14); ctx.stroke();
     ctx.textAlign = 'center';
     ctx.fillStyle = afford ? '#7A4A05' : '#7C7290'; ctx.font = F(700, 19);
@@ -1909,6 +1948,8 @@ function render() {
   const z = L.zone;
   if (built('desk')) {
   const zn = candidates.filter(c=>c.st==='wait').length, zFull = zn >= zoneCap();
+  ctx.fillStyle = 'rgba(120,100,70,0.10)'; rr(z.x+5, z.y+7, z.w, z.h, 14); ctx.fill();
+  ctx.fillStyle = 'rgba(255,252,242,0.55)'; rr(z.x, z.y, z.w, z.h, 14); ctx.fill();
   ctx.setLineDash([8,7]); ctx.strokeStyle = zFull ? 'rgba(200,90,60,0.7)' : 'rgba(110,95,65,0.45)'; ctx.lineWidth = 2;
   rr(z.x, z.y, z.w, z.h, 14); ctx.stroke(); ctx.setLineDash([]);
   zoneSlots.slice(0, zoneCap()).forEach(s => {
@@ -1926,9 +1967,13 @@ function render() {
   if (built('booth')) {
   for (let i=0;i<boothCap();i++) {
     const s = boothSlots[i];
-    ctx.fillStyle = 'rgba(255,255,255,0.55)'; rr(s.x-25, bo.y+12, 50, 100, 9); ctx.fill();
-    ctx.strokeStyle = 'rgba(60,90,115,0.28)'; ctx.lineWidth = 1.8; rr(s.x-25, bo.y+12, 50, 100, 9); ctx.stroke();
-    ctx.fillStyle = 'rgba(60,90,115,0.35)'; rr(s.x-13, bo.y+18, 26, 13, 3); ctx.fill();
+    // a recessed cubicle: sunken floor, a back wall catching the light, side walls in shade
+    ctx.fillStyle = 'rgba(48,74,98,0.20)'; rr(s.x-27, bo.y+10, 54, 104, 10); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.62)'; rr(s.x-24, bo.y+16, 48, 96, 8); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.9)'; rr(s.x-24, bo.y+16, 48, 16, 8); ctx.fill();
+    ctx.fillStyle = 'rgba(48,74,98,0.13)'; rr(s.x+16, bo.y+16, 8, 96, 4); ctx.fill();
+    ctx.strokeStyle = 'rgba(60,90,115,0.30)'; ctx.lineWidth = 1.8; rr(s.x-24, bo.y+16, 48, 96, 8); ctx.stroke();
+    ctx.fillStyle = 'rgba(60,90,115,0.38)'; rr(s.x-13, bo.y+24, 26, 13, 3); ctx.fill();
   }
 
   candidates.forEach(c => {
@@ -1948,10 +1993,12 @@ function render() {
       rr(s.x+3, bo.y+bo.h-20, 8, 13, 2); ctx.fill();
       bar(s.x-20, bo.y+bo.h-16, 40, Math.min(1, (c.iT||0)/interviewTime()), '#A6B0BC');
       ctx.font = F(600, 10); ctx.textAlign = 'center';
-      ctx.fillText('no interviewer', s.x, bo.y+bo.h-2);
+      ctx.fillText('no interviewer', s.x, bo.y+bo.h-10);
     }
   });
   const rn = candidates.filter(c=>c.st==='ready').length, rFull = rn >= readyCap();
+  ctx.fillStyle = 'rgba(60,110,75,0.10)'; rr(BENCH.x+5, BENCH.y+7, BENCH.w, BENCH.h, 14); ctx.fill();
+  ctx.fillStyle = 'rgba(246,255,248,0.6)'; rr(BENCH.x, BENCH.y, BENCH.w, BENCH.h, 14); ctx.fill();
   ctx.setLineDash([8,7]); ctx.strokeStyle = rFull ? 'rgba(200,90,60,0.7)' : 'rgba(60,120,80,0.4)'; ctx.lineWidth = 2;
   rr(BENCH.x, BENCH.y, BENCH.w, BENCH.h, 14); ctx.stroke(); ctx.setLineDash([]);
   readySpots.slice(0, readyCap()).forEach(s => {
@@ -2023,8 +2070,11 @@ function render() {
 
   const lb = L.lobby;
   if (built('lobby')) {
-  ctx.fillStyle = 'rgba(255,252,242,0.5)'; rr(lb.x, lb.y, lb.w, lb.h, 20); ctx.fill();
-  ctx.strokeStyle = 'rgba(120,100,70,0.2)'; ctx.lineWidth = 3; rr(lb.x, lb.y, lb.w, lb.h, 20); ctx.stroke();
+  ctx.fillStyle = 'rgba(110,90,60,0.16)'; rr(lb.x+6, lb.y+9, lb.w, lb.h, 20); ctx.fill();
+  ctx.fillStyle = 'rgba(238,228,208,0.95)'; rr(lb.x, lb.y+6, lb.w, lb.h, 20); ctx.fill();
+  ctx.fillStyle = 'rgba(255,252,242,0.96)'; rr(lb.x, lb.y, lb.w, lb.h, 20); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.6)'; rr(lb.x+8, lb.y+5, lb.w-16, 6, 3); ctx.fill();
+  ctx.strokeStyle = 'rgba(120,100,70,0.22)'; ctx.lineWidth = 3; rr(lb.x, lb.y, lb.w, lb.h, 20); ctx.stroke();
   ctx.fillStyle = 'rgba(110,95,65,0.75)'; ctx.font = F(600, 13); ctx.textAlign = 'center';
   ctx.fillText('Client lobby', lb.x + lb.w/2, lb.y - 10);
   clientSlots.slice(0, clientCap()).forEach(s => {
