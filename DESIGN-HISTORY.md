@@ -193,3 +193,43 @@ Post-handoff round driven by four owner directives plus a measured audit (two co
 **Corrections to earlier sections:** the §5 "starved client rate 40–60%" figure is stale — measured 8–12% on the current build. The §3 Round-4 claim that "demand slightly exceeds supply" no longer held before this round (lobby ~75% empty); the patience cut partially restores tension. VIP orders pay 5× — now labeled in the shop and on the crown, it was previously invisible.
 
 **Measured after (22-min bot, 3+ runs):** Dubai affordable at min 18.5–20.7 (was: never), cash@20m $1.3k–3.5k (was ~$0.5k), walkouts 4–11 (was 0), gross/hour 49–66k, all 60+ harness assertions green.
+
+## Round 14 — Scale, contrast, and an art pipeline (2026-08-25)
+
+Three notes from the player, all acted on.
+
+**Contrast was too strong.** The sun was at 0.95 with hemisphere fill at 0.62, so
+every box carried a hard shadow and a bright cap. Rebalanced to sun 0.42 /
+hemisphere 0.82, floor grout from 0.20 to 0.09 alpha, tile shade 0.86 to 0.96,
+cap highlight 1.18 to 1.07, walls and sky pulled back. Same geometry, far calmer
+image.
+
+**Characters were less than half Pizza Ready's size.** Measured properly this
+time: the earlier estimate ignored that a *vertical* object under a tilted camera
+projects at `sin θ`, not full length, which cost a factor of ~0.55. Measured on
+the live camera instead of computing it: characters were 5.5% of screen height
+against Pizza Ready's 7.8–10.7%. Solved by camera angle rather than by scaling
+people — `d = VIEW_W × 2.4` at height `0.82d` gives **9.4%**, their typical value.
+
+That reframing exposed the real problem: a 900-unit-wide floor against a
+460-unit visible band, so half the office and its labels sat off-frame. Pizza
+Ready's play area is about one screen wide, so the floor was narrowed to 700 and
+the pipeline column now fills the frame. Camera bounds are no longer guessed —
+`GL_HALF_W/GL_NEAR/GL_FAR` were measured by walking the ground plane out until it
+left the viewport. Furniture was re-proportioned against a 114-unit person (desk
+at waist, cubicle at chest) rather than the near-shoulder-height slabs it had.
+
+**"The 3D icons are poor — what format should my designer provide?"** The honest
+answer is that primitives will never look modelled, so the fix is an asset
+pipeline, not more tuning. Added `GLTFLoader` and an `ART` manifest: name a `.glb`
+and it replaces the primitive; leave it blank and the primitive stays, so a
+partial art delivery works. `fitArt` scales props to their ground footprint
+(height follows the artist's proportions, so a monitor rises above the desk
+instead of shrinking it) and characters by height (so all seven match). Character
+models are looked up by node name — `Body` is tinted at runtime for
+industry-coloured candidates and VIP clients.
+
+Verified end to end rather than assumed: `assets/_reference-desk.glb` is generated
+byte-by-byte in the repo, loads through the real game path, and lands at exactly
+its reserved 212 × 104 footprint with its base on the floor. `ASSETS.md` is the
+spec to hand the designer.

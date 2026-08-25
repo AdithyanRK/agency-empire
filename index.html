@@ -10,6 +10,7 @@
   <meta name="theme-color" content="#241F17" />
 <title>Agency Empire</title>
 <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -170,7 +171,7 @@
 </div>
 <script>
 'use strict';
-const VW = 900, VH = 1500;      // the office floor is now bigger than one screen
+const VW = 700, VH = 1500;      // narrow like Pizza Ready: the pipeline column fills the frame
 const VIEW_W = 620;            // how much of it fits across the screen width
 const BG_M = 260;              // floor baked past the walls so edges never show blank
 const cv = document.getElementById('game');
@@ -230,26 +231,26 @@ const HIRES = {
 };
 // One grid: a service column on the left, the hiring pipeline flowing down the middle.
 // COL_X is the left column, MAIN_X..MAIN_R the pipeline column; every row shares those edges.
-const COL_X = 40, COL_W = 190, MAIN_X = 276, MAIN_W = 584, MAIN_R = MAIN_X + MAIN_W;
+const COL_X = 30, COL_W = 150, MAIN_X = 214, MAIN_W = 456, MAIN_R = MAIN_X + MAIN_W;
 const ROW_Y = [170, 400, 660, 910, 1230];   // board/desk, waiting, rooms, bench, lobby
 const L = {
-  printer: { x:MAIN_X,      y:ROW_Y[0], w:270, h:104 },
-  desk:    { x:MAIN_R-270,  y:ROW_Y[0], w:270, h:104 },
+  printer: { x:MAIN_X,      y:ROW_Y[0], w:212, h:104 },
+  desk:    { x:MAIN_R-212,  y:ROW_Y[0], w:212, h:104 },
   zone:    { x:MAIN_X,      y:ROW_Y[1], w:MAIN_W, h:170 },
   booth:   { x:MAIN_X,      y:ROW_Y[2], w:MAIN_W, h:150 },
   lobby:   { x:MAIN_X,      y:ROW_Y[4], w:MAIN_W, h:160 },
-  door:    { x:COL_X,       y:ROW_Y[4], w:104, h:160 },
+  door:    { x:COL_X,       y:ROW_Y[4], w:92, h:160 },
   mgr:     { x:COL_X,       y:ROW_Y[2], w:COL_W, h:116 },
-  banner:  { x:COL_X+34,    y:ROW_Y[3], w:108, h:84 },
-  pads:    { sourcer:{x:COL_X+90,y:ROW_Y[0]+150}, rec:{x:MAIN_X+60,y:ROW_Y[2]-40},
+  banner:  { x:COL_X+22,    y:ROW_Y[3], w:100, h:84 },
+  pads:    { sourcer:{x:COL_X+75,y:ROW_Y[0]+150}, rec:{x:MAIN_X+60,y:ROW_Y[2]-40},
              am:{x:MAIN_X+70,y:ROW_Y[4]-70}, fin:{x:MAIN_R-60,y:ROW_Y[4]-70} },
-  shred:   { x:COL_X+52,    y:ROW_Y[0]+16, w:70, h:62 },
+  shred:   { x:COL_X+40,    y:ROW_Y[0]+16, w:70, h:62 },
   exit:    { x:MAIN_R-104,  y:34,  w:104, h:58 }
 };
 const BENCH = { x:MAIN_X, y:ROW_Y[3], w:MAIN_W, h:96 };
 const FIN_POST = { x:MAIN_R - 78, y:ROW_Y[4] - 44 };   // open band beside the lobby, clear of the promo stand
 const boothSlots = [];
-const SLOT_X = i => MAIN_X + 62 + i * ((MAIN_W - 124) / 5);
+const SLOT_X = i => MAIN_X + 52 + i * ((MAIN_W - 104) / 5);
 for (let i=0;i<6;i++) boothSlots.push({ x:SLOT_X(i), y:L.booth.y + 82 });
 const readySpots = [];
 for (let i=0;i<6;i++) readySpots.push({ x:SLOT_X(i), y:BENCH.y + 52 });
@@ -554,11 +555,13 @@ let cssW = 390, cssH = 780;    // viewport in CSS px
 let WS = 1;                    // world units -> CSS px
 let VIS_W = VW, VIS_H = VH;    // world units currently visible
 let camX = VW/2, camY = VH/2;
+// ground-plane slice the 3D frustum covers, measured against the live camera
+const GL_HALF_W = 224, GL_NEAR = 640, GL_FAR = 500;
 function clampCam() {
   // the 3D camera covers a different slice than the old flat view, so it keeps its own bounds
   if (R3) {
-    camX = Math.max(VW*0.34, Math.min(VW*0.66, camX));
-    camY = Math.max(260, Math.min(VH - 260, camY));
+    camX = Math.max(GL_HALF_W, Math.min(VW - GL_HALF_W, camX));
+    camY = Math.max(GL_NEAR, Math.min(VH - GL_FAR, camY));   // measured against the live frustum, not guessed
     return;
   }
   camX = VIS_W >= VW ? VW/2 : Math.max(VIS_W/2, Math.min(VW - VIS_W/2, camX));
@@ -1830,17 +1833,33 @@ function floorTex(C) {
   const x = c.getContext && c.getContext('2d');
   if (!x) return null;
   x.fillStyle = C.floorA; x.fillRect(0, 0, 128, 128);
-  x.fillStyle = shade(C.floorB, 0.86); x.fillRect(0, 0, 64, 64); x.fillRect(64, 64, 64, 64);
-  x.fillStyle = 'rgba(120,95,55,0.2)';
+  x.fillStyle = shade(C.floorB, 0.96); x.fillRect(0, 0, 64, 64); x.fillRect(64, 64, 64, 64);
+  x.fillStyle = 'rgba(120,95,55,0.09)';
   x.fillRect(0, 0, 128, 3); x.fillRect(0, 64, 128, 3); x.fillRect(0, 0, 3, 128); x.fillRect(64, 0, 3, 128);
   const tx = new THREE.CanvasTexture(c);
   tx.wrapS = tx.wrapT = THREE.RepeatWrapping;
   tx.repeat.set(6000/192, 6000/192);
   return tx;
 }
+const PSC = 1.9;   // people are ~114 world units tall: measured Pizza Ready sits at 7.8-10.7% of screen height
+const PERSON_H = 60;   // primitive rig height in world units, before PSC
 function person3D(shirt, opts) {
   opts = opts || {};
+  const role = (opts && opts.role) || 'candidate';
+  const proto = R3.art && (R3.art.person[role] || R3.art.person.candidate);
+  if (proto) {
+    const g = fitArt(proto, 44, PERSON_H, 44, true);
+    g.scale.setScalar(PSC);
+    const find = n => { let f = null; g.traverse(o => { if (!f && o.name === n) f = o; }); return f; };
+    const body = find('Body'), head = find('Head'), tie = find('Tie'), cse = find('Case');
+    const stub = new THREE.Object3D();
+    // fitArt centres the model on its box; people stand on the floor, so put() lifts it
+    g.userData = { body: body || stub, head: head || stub, tie: tie || stub, cse: cse || stub, baseY: PERSON_H / 2 * PSC };
+    if (body && body.material) body.material = body.material.clone();
+    return g;
+  }
   const g = new THREE.Group();
+  g.scale.setScalar(PSC);
   const legs = new THREE.Mesh(new THREE.CylinderGeometry(7, 7.5, 15, 10), M3(opts.legs || '#3A3A46'));
   legs.position.y = 7.5; legs.castShadow = true; g.add(legs);
   const body = new THREE.Mesh(new THREE.CylinderGeometry(10.5, 11.5, 25, 14), M3(shirt));
@@ -1867,11 +1886,11 @@ function init3D() {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color('#BFE8F2');
+  scene.background = new THREE.Color('#D8EEF4');
   const camera = new THREE.PerspectiveCamera(34, 1, 10, 20000);
 
-  scene.add(new THREE.HemisphereLight(0xffffff, 0xbda078, 0.62));
-  const sun = new THREE.DirectionalLight(0xfff6e2, 0.95);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xd6c6ac, 0.82));
+  const sun = new THREE.DirectionalLight(0xfff6e2, 0.42);
   sun.castShadow = true;
   sun.shadow.mapSize.width = sun.shadow.mapSize.height = 1024;
   const sc = sun.shadow.camera;
@@ -1898,7 +1917,7 @@ function init3D() {
   wallR.position.set(VW + 100, 105, VH/2); scene.add(wallR);
 
   R3 = { renderer, scene, camera, sun, ground, groundMat, wallBack, trim, wallL, wallR,
-         st: {}, pads: {}, people: [], bills: [], papers: [], country: -1 };
+         st: {}, pads: {}, people: {}, bills: [], papers: [], country: -1 };
   resize3D();
 }
 function resize3D() {
@@ -1909,8 +1928,8 @@ function resize3D() {
   R3.camera.updateProjectionMatrix();
 }
 function camera3D() {
-  const d = VIEW_W * 3.0;
-  R3.camera.position.set(camX, d * 0.98, camY + d * 0.66);
+  const d = VIEW_W * 2.4;                       // characters land at ~9.4% of screen height (Pizza Ready: 7.8-10.7%)
+  R3.camera.position.set(camX, d * 0.82, camY + d * 0.66);
   R3.camera.lookAt(camX, 0, camY + 30);
   R3.sun.position.set(camX - 520, 950, camY - 220);
   R3.sun.target.position.set(camX, 0, camY);
@@ -1926,25 +1945,72 @@ function onScreen(p, m) {
   return p.z < 1 && p.x > -m && p.x < cssW + m && p.y > -m && p.y < cssH + m;
 }
 
+// heights are relative to a ~114-unit person: waist ~46, chest ~72, head ~114
 const ST3 = {
-  printer: { col:'#E8B45C', h:58 },
-  desk:    { col:'#79CFA0', h:54 },
-  booth:   { col:'#7FB6EA', h:10 },
-  zone:    { col:'#EED9AC', h:4 },
-  bench:   { col:'#B6E3C4', h:4 },
-  lobby:   { col:'#EFDCBE', h:5 },
-  mgr:     { col:'#C79BEE', h:62 },
-  banner:  { col:'#FF8FC8', h:68 },
-  bank:    { col:'#E4D3AE', h:80 },
-  door:    { col:'#6E5638', h:130 },
-  shred:   { col:'#8A8A92', h:48 },
+  printer: { col:'#E8BE76', h:74 },
+  desk:    { col:'#8ED4AC', h:48 },
+  booth:   { col:'#9BC6EE', h:8 },
+  zone:    { col:'#F0E2C2', h:4 },
+  bench:   { col:'#C6E8D2', h:4 },
+  lobby:   { col:'#F2E4CC', h:5 },
+  mgr:     { col:'#CDA9F0', h:50 },
+  banner:  { col:'#F79BCC', h:60 },
+  bank:    { col:'#E6D8B8', h:78 },
+  door:    { col:'#7A6244', h:128 },
+  shred:   { col:'#96969E', h:52 },
 };
+// ---- Artist-supplied models -------------------------------------------------
+// Drop .glb files in assets/ and name them here; anything left blank keeps the
+// built-in primitive, so the game always runs with a partial art delivery.
+// See ASSETS.md for the full spec handed to the designer.
+const ART = {
+  st: { printer:'', desk:'', booth:'', mgr:'', bank:'', banner:'', door:'', shred:'', lobby:'', zone:'', bench:'' },
+  person: { player:'', sourcer:'', rec:'', am:'', fin:'', candidate:'', client:'' },
+};
+
+function loadArt() {
+  if (!R3 || typeof THREE.GLTFLoader !== 'function') return;
+  R3.art = { st:{}, person:{} };
+  const loader = new THREE.GLTFLoader();
+  const grab = (bucket, key, url) => loader.load(url, gl => {
+    const m = gl.scene;
+    m.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    R3.art[bucket][key] = m;
+    if (bucket === 'st' && R3.st[key]) { R3.scene.remove(R3.st[key]); delete R3.st[key]; }
+    if (bucket === 'person') for (const r in R3.people) R3.people[r].forEach(e => R3.scene.remove(e));
+    R3.people = {};   // rebuilt next frame from the new prototype
+  }, null, () => console.warn('art: could not load ' + url));
+  for (const k in ART.st) if (ART.st[k]) grab('st', k, ART.st[k]);
+  for (const k in ART.person) if (ART.person[k]) grab('person', k, ART.person[k]);
+}
+
+// Scale an artist model to the footprint the layout reserves for it, base on the floor.
+// Fits on the ground footprint only: anything the artist builds upward (a monitor, a
+// sign) then rises naturally instead of shrinking the whole model to fit a height cap.
+function fitArt(proto, w, h, d, byHeight) {
+  const m = proto.clone(true);
+  const b = new THREE.Box3().setFromObject(m), s = b.getSize(new THREE.Vector3());
+  const k = byHeight ? h / (s.y || 1) : Math.min(w / (s.x || 1), d / (s.z || 1));
+  m.scale.setScalar(k);
+  const b2 = new THREE.Box3().setFromObject(m);
+  const wrap = new THREE.Group();
+  m.position.y -= b2.min.y + h/2;          // wrapper origin stays the box centre, like the primitives
+  m.position.x -= (b2.min.x + b2.max.x) / 2;
+  m.position.z -= (b2.min.z + b2.max.z) / 2;
+  wrap.add(m);
+  return wrap;
+}
+
 function st3D(key, rect, col, h, on) {
   let m = R3.st[key];
+  if (!m && R3.art && R3.art.st[key]) {
+    m = fitArt(R3.art.st[key], rect.w, h, rect.h);
+    R3.st[key] = m; R3.scene.add(m);
+  }
   if (!m) {
     m = box3D(rect.w, h, rect.h, col);
-    const cap = new THREE.Mesh(new THREE.BoxGeometry(rect.w - 12, 4, rect.h - 12), M3(shade(col, 1.18)));
-    cap.position.y = h/2 + 2; cap.castShadow = false; m.add(cap);
+    const cap = new THREE.Mesh(new THREE.BoxGeometry(rect.w - 12, 4, rect.h - 12), M3(shade(col, 1.07)));
+    cap.position.y = h/2 + 2; cap.castShadow = false; m.add(cap);   // gentle top highlight, not a hard edge
     R3.st[key] = m; R3.scene.add(m);
   }
   m.visible = on !== false;
@@ -1957,8 +2023,8 @@ function sync3D() {
     R3.country = state.country;
     const tx = floorTex(C);
     if (tx) { R3.groundMat.map = tx; R3.groundMat.needsUpdate = true; }
-    [R3.wallBack, R3.wallL, R3.wallR].forEach(w => w.material.color.set(C.wall));
-    R3.trim.material.color.set(shade(C.wall, 1.3));
+    [R3.wallBack, R3.wallL, R3.wallR].forEach(w => w.material.color.set(shade(C.wall, 1.12)));
+    R3.trim.material.color.set(shade(C.wall, 1.16));
   }
 
   st3D('printer', L.printer, ST3.printer.col, ST3.printer.h);
@@ -1976,9 +2042,9 @@ function sync3D() {
   for (let i = 0; i < 6; i++) {
     const key = 'cub' + i;
     let m = R3.st[key];
-    if (!m) { m = box3D(52, 44, 64, '#F2F8FF'); R3.st[key] = m; R3.scene.add(m); }
+    if (!m) { m = box3D(62, 66, 76, '#F2F8FF'); R3.st[key] = m; R3.scene.add(m); }
     m.visible = built('booth') && i < boothCap();
-    if (m.visible) m.position.set(boothSlots[i].x, 22 + ST3.booth.h, L.booth.y + 34);
+    if (m.visible) m.position.set(boothSlots[i].x, 33 + ST3.booth.h, L.booth.y + 34);
   }
 
   Object.keys(BUILD).forEach(k => {
@@ -1991,27 +2057,32 @@ function sync3D() {
     m.position.set(r.x + r.w/2, 6, r.y + r.h/2);
   });
 
-  let n = 0;
+  const used = {};
   const bobAt = (seed, moving) => moving ? Math.sin(performance.now()/70 + seed)*3 : Math.sin(performance.now()/420 + seed)*1.2;
   const put = (x, y, shirt, sc, seed, moving, opts) => {
-    let e = R3.people[n];
-    if (!e) { e = person3D(shirt); R3.people[n] = e; R3.scene.add(e); }
-    n++;
+    const role = (opts && opts.role) || 'candidate';
+    const pool = R3.people[role] || (R3.people[role] = []);
+    const i = used[role] || 0; used[role] = i + 1;
+    let e = pool[i];
+    if (!e) { e = person3D(shirt, { role }); pool[i] = e; R3.scene.add(e); }
     e.visible = true;
-    e.userData.body.material.color.set(shirt);
+    if (e.userData.body.material) e.userData.body.material.color.set(shirt);
     e.userData.tie.visible = !!(opts && opts.tie);
     e.userData.cse.visible = !!(opts && opts.cse);
-    e.scale.setScalar(sc);
-    e.position.set(x, bobAt(seed, moving), y);
+    e.scale.setScalar(sc * PSC);
+    e.position.set(x, (e.userData.baseY || 0) * sc + bobAt(seed, moving), y);
     return e;
   };
 
-  put(player.x, player.y, '#F5F0E4', 1.15, 1, player.moving, { tie:true });
-  candidates.forEach(c => put(c.x, c.y, VERTS[c.vert].color, 0.86, c.bob || 0, c.st === 'follow' || c.st === 'expire'));
-  clients.forEach(cl => put(cl.x, cl.y, cl.vip ? '#C9A227' : '#2C2D36', 1.0, cl.bob || 0, cl.st !== 'wait', { cse:true }));
-  [emp.sourcers, emp.recs, emp.ams, emp.fins].forEach(a => a.forEach(u =>
-    put(u.x, u.y, STAFF_UNIFORM, 0.96, u.o || 0, !!u.mv)));
-  for (let i = n; i < R3.people.length; i++) R3.people[i].visible = false;
+  put(player.x, player.y, '#F5F0E4', 1.15, 1, player.moving, { tie:true, role:'player' });
+  candidates.forEach(c => put(c.x, c.y, VERTS[c.vert].color, 0.86, c.bob || 0, c.st === 'follow' || c.st === 'expire', { role:'candidate' }));
+  clients.forEach(cl => put(cl.x, cl.y, cl.vip ? '#C9A227' : '#2C2D36', 1.0, cl.bob || 0, cl.st !== 'wait', { cse:true, role:'client' }));
+  [['sourcers','sourcer'],['recs','rec'],['ams','am'],['fins','fin']].forEach(([list, role]) => emp[list].forEach(u =>
+    put(u.x, u.y, STAFF_UNIFORM, 0.96, u.o || 0, !!u.mv, { role })));
+  for (const role in R3.people) {
+    const pool = R3.people[role];
+    for (let i = used[role] || 0; i < pool.length; i++) pool[i].visible = false;
+  }
 
   let b = 0;
   bills.forEach(x => {
@@ -2416,6 +2487,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) saveG
 
 (async function boot() {
   init3D();
+  loadArt();
   resize();
   let wiped = false;
   try {
