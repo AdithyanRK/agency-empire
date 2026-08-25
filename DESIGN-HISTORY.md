@@ -233,3 +233,22 @@ Verified end to end rather than assumed: `assets/_reference-desk.glb` is generat
 byte-by-byte in the repo, loads through the real game path, and lands at exactly
 its reserved 212 × 104 footprint with its base on the floor. `ASSETS.md` is the
 spec to hand the designer.
+
+
+## Round 15 — Reverted to 2D (2026-08-25)
+
+Player call: back to the 2D renderer. `agency-empire.html` is restored to the
+last flat build (`d814a1c`), which keeps everything that is not renderer-specific
+— the $5,000 start, follow camera, phased build-out with tasks and levels, the
+settings menu, and the full economy. The 3D work is preserved intact on the
+**`3d-renderer`** branch and can be restored at any time; `ASSETS.md` stays as
+the brief for a designer, flagged with where the loader actually lives.
+
+One thing did carry back. The build-out test had been flaky for two rounds, and
+the fix in Round 13 was wrong: I had blamed a single test resume being eaten by
+the ~18% screening reject roll and queued six instead, which only cut the failure
+rate from ~18% to ~3%. Instrumenting the actual failure showed screening *had*
+run — the queue drained from 6 to 4 and both resumes were rejected — so the
+assertion was testing an RNG outcome, not the behaviour it named. It now asserts
+that screening consumed input at all, which is what "screening starts only once
+the desk is built" actually means. 12 consecutive green runs.

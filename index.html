@@ -9,8 +9,6 @@
   <meta name="apple-mobile-web-app-title" content="Agency Empire" />
   <meta name="theme-color" content="#241F17" />
 <title>Agency Empire</title>
-<script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
-<script src="https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -24,9 +22,6 @@
   body { display:flex; align-items:center; justify-content:center; }
   #wrap { position:relative; }
   canvas { display:block; touch-action:none; }
-  #gl { position:absolute; left:0; top:0; width:100%; height:100%; z-index:0; display:none; }
-  #gl.on { display:block; }
-  #game { position:absolute; left:0; top:0; width:100%; height:100%; z-index:1; }
   .hud { position:absolute; top:0; left:0; right:0; padding:calc(10px + env(safe-area-inset-top, 0px)) calc(12px + env(safe-area-inset-right, 0px)) 10px calc(12px + env(safe-area-inset-left, 0px)); display:flex; align-items:flex-start; justify-content:space-between; pointer-events:none; z-index:5; }
   .chip { background:linear-gradient(#7B45A8,var(--grape)); color:#FFF3FF; border:2px solid rgba(255,255,255,0.35); border-radius:18px; padding:8px 14px; font-size:14px; font-weight:700; line-height:1.2; box-shadow:0 4px 0 var(--grape-d), 0 6px 14px rgba(0,0,0,0.28); }
   .chip small { display:block; font-size:11px; opacity:0.8; font-weight:500; }
@@ -118,7 +113,6 @@
 </head>
 <body>
 <div id="wrap">
-  <canvas id="gl"></canvas>
   <canvas id="game"></canvas>
   <div class="hud">
     <button class="hbtn" id="countryChip" title="Your offices">&#127758;</button>
@@ -171,7 +165,7 @@
 </div>
 <script>
 'use strict';
-const VW = 700, VH = 1500;      // narrow like Pizza Ready: the pipeline column fills the frame
+const VW = 900, VH = 1500;      // the office floor is now bigger than one screen
 const VIEW_W = 620;            // how much of it fits across the screen width
 const BG_M = 260;              // floor baked past the walls so edges never show blank
 const cv = document.getElementById('game');
@@ -231,26 +225,26 @@ const HIRES = {
 };
 // One grid: a service column on the left, the hiring pipeline flowing down the middle.
 // COL_X is the left column, MAIN_X..MAIN_R the pipeline column; every row shares those edges.
-const COL_X = 30, COL_W = 150, MAIN_X = 214, MAIN_W = 456, MAIN_R = MAIN_X + MAIN_W;
+const COL_X = 40, COL_W = 190, MAIN_X = 276, MAIN_W = 584, MAIN_R = MAIN_X + MAIN_W;
 const ROW_Y = [170, 400, 660, 910, 1230];   // board/desk, waiting, rooms, bench, lobby
 const L = {
-  printer: { x:MAIN_X,      y:ROW_Y[0], w:212, h:104 },
-  desk:    { x:MAIN_R-212,  y:ROW_Y[0], w:212, h:104 },
+  printer: { x:MAIN_X,      y:ROW_Y[0], w:270, h:104 },
+  desk:    { x:MAIN_R-270,  y:ROW_Y[0], w:270, h:104 },
   zone:    { x:MAIN_X,      y:ROW_Y[1], w:MAIN_W, h:170 },
   booth:   { x:MAIN_X,      y:ROW_Y[2], w:MAIN_W, h:150 },
   lobby:   { x:MAIN_X,      y:ROW_Y[4], w:MAIN_W, h:160 },
-  door:    { x:COL_X,       y:ROW_Y[4], w:92, h:160 },
+  door:    { x:COL_X,       y:ROW_Y[4], w:104, h:160 },
   mgr:     { x:COL_X,       y:ROW_Y[2], w:COL_W, h:116 },
-  banner:  { x:COL_X+22,    y:ROW_Y[3], w:100, h:84 },
-  pads:    { sourcer:{x:COL_X+75,y:ROW_Y[0]+150}, rec:{x:MAIN_X+60,y:ROW_Y[2]-40},
+  banner:  { x:COL_X+34,    y:ROW_Y[3], w:108, h:84 },
+  pads:    { sourcer:{x:COL_X+90,y:ROW_Y[0]+150}, rec:{x:MAIN_X+60,y:ROW_Y[2]-40},
              am:{x:MAIN_X+70,y:ROW_Y[4]-70}, fin:{x:MAIN_R-60,y:ROW_Y[4]-70} },
-  shred:   { x:COL_X+40,    y:ROW_Y[0]+16, w:70, h:62 },
+  shred:   { x:COL_X+52,    y:ROW_Y[0]+16, w:70, h:62 },
   exit:    { x:MAIN_R-104,  y:34,  w:104, h:58 }
 };
 const BENCH = { x:MAIN_X, y:ROW_Y[3], w:MAIN_W, h:96 };
 const FIN_POST = { x:MAIN_R - 78, y:ROW_Y[4] - 44 };   // open band beside the lobby, clear of the promo stand
 const boothSlots = [];
-const SLOT_X = i => MAIN_X + 52 + i * ((MAIN_W - 104) / 5);
+const SLOT_X = i => MAIN_X + 62 + i * ((MAIN_W - 124) / 5);
 for (let i=0;i<6;i++) boothSlots.push({ x:SLOT_X(i), y:L.booth.y + 82 });
 const readySpots = [];
 for (let i=0;i<6;i++) readySpots.push({ x:SLOT_X(i), y:BENCH.y + 52 });
@@ -322,9 +316,7 @@ function drawTour() {
   const r = s.r, pad = 14, pu = (Math.sin(performance.now()/300)+1)/2;
   ctx.save();
   // world rect -> screen rect, then dim around it with four bands
-  const a3 = proj(r.x - pad, r.y - pad, 100), b3 = proj(r.x + r.w + pad, r.y + r.h + pad, 0);
-  const hx = Math.min(a3.x, b3.x), hy = Math.min(a3.y, b3.y);
-  const hw = Math.max(50, Math.abs(b3.x - a3.x)), hh = Math.max(50, Math.abs(b3.y - a3.y));
+  const hx = w2sx(r.x-pad), hy = w2sy(r.y-pad), hw = (r.w+pad*2)*WS, hh = (r.h+pad*2)*WS;
   ctx.fillStyle = 'rgba(43,20,64,0.72)';
   ctx.fillRect(0, 0, cssW, Math.max(0, hy));
   ctx.fillRect(0, hy + hh, cssW, Math.max(0, cssH - (hy + hh)));
@@ -511,7 +503,7 @@ addEventListener('keydown', e => {
   if (k.startsWith('arrow') || k === ' ') e.preventDefault();
 });
 addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
-let joy = null, joyScreen = { x:0, y:0 };
+let joy = null;
 let scaleF = 1;
 function toWorld(e) {
   const r = cv.getBoundingClientRect();
@@ -524,15 +516,13 @@ function pDown(e) {
   ensureAC();
   if (AC && AC.state === 'suspended') AC.resume();
   if (joy) return;
-  const r0 = cv.getBoundingClientRect(), q0 = e.touches ? e.touches[0] : e;
-  joyScreen = { x: q0.clientX - r0.left, y: q0.clientY - r0.top };
-  joy = { id:e.pointerId, o:{x:0,y:0}, v:{x:0,y:0} };
+  joy = { id:e.pointerId, o:toWorld(e), v:{x:0,y:0} };
   e.preventDefault();
 }
 function pMove(e) {
   if (!joy || (e.pointerId !== undefined && e.pointerId !== joy.id)) return;
-  const r0 = cv.getBoundingClientRect(), q0 = e.touches ? e.touches[0] : e;
-  let dx = (q0.clientX - r0.left) - joyScreen.x, dy = (q0.clientY - r0.top) - joyScreen.y;
+  const p = toWorld(e);
+  let dx = p.x - joy.o.x, dy = p.y - joy.o.y;
   const m = Math.hypot(dx,dy);
   if (m > 64) { dx = dx/m*64; dy = dy/m*64; }
   joy.v = { x:dx, y:dy };
@@ -555,15 +545,7 @@ let cssW = 390, cssH = 780;    // viewport in CSS px
 let WS = 1;                    // world units -> CSS px
 let VIS_W = VW, VIS_H = VH;    // world units currently visible
 let camX = VW/2, camY = VH/2;
-// ground-plane slice the 3D frustum covers, measured against the live camera
-const GL_HALF_W = 224, GL_NEAR = 640, GL_FAR = 500;
 function clampCam() {
-  // the 3D camera covers a different slice than the old flat view, so it keeps its own bounds
-  if (R3) {
-    camX = Math.max(GL_HALF_W, Math.min(VW - GL_HALF_W, camX));
-    camY = Math.max(GL_NEAR, Math.min(VH - GL_FAR, camY));   // measured against the live frustum, not guessed
-    return;
-  }
   camX = VIS_W >= VW ? VW/2 : Math.max(VIS_W/2, Math.min(VW - VIS_W/2, camX));
   camY = VIS_H >= VH ? VH/2 : Math.max(VIS_H/2, Math.min(VH - VIS_H/2, camY));
 }
@@ -583,7 +565,6 @@ function resize() {
   cv.style.width = cssW + 'px'; cv.style.height = cssH + 'px';
   wrap.style.width = cssW + 'px'; wrap.style.height = cssH + 'px';
   clampCam(); worldTransform();
-  resize3D();
   vgCache = null; bgKey = ''; chipKey = '';
 }
 addEventListener('resize', resize);
@@ -1811,301 +1792,6 @@ function bar(x, y, w, pct, col) {
   if (pct > 0.02) { ctx.fillStyle = col; rr(x, y, Math.max(6, w*pct), 8, 4); ctx.fill(); }
 }
 
-
-/* --- 3D renderer -----------------------------------------------------------
-   The simulation stays in 2D world coordinates (x, y). Here they become a
-   ground plane (x, 0, y) drawn with real geometry, a perspective camera and
-   shadows. Labels and effects are projected back onto the 2D overlay canvas.
-   Guarded throughout so the headless harness (no WebGL) skips it.
---------------------------------------------------------------------------- */
-let GL3 = true;
-try { GL3 = !/[?&]gl=0/.test(location.search); } catch (e) {}
-let R3 = null;
-
-const M3 = col => new THREE.MeshLambertMaterial({ color: new THREE.Color(col) });
-function box3D(w, h, d, col, cast) {
-  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), M3(col));
-  m.castShadow = cast !== false; m.receiveShadow = true;
-  return m;
-}
-function floorTex(C) {
-  const c = document.createElement('canvas'); c.width = c.height = 128;
-  const x = c.getContext && c.getContext('2d');
-  if (!x) return null;
-  x.fillStyle = C.floorA; x.fillRect(0, 0, 128, 128);
-  x.fillStyle = shade(C.floorB, 0.96); x.fillRect(0, 0, 64, 64); x.fillRect(64, 64, 64, 64);
-  x.fillStyle = 'rgba(120,95,55,0.09)';
-  x.fillRect(0, 0, 128, 3); x.fillRect(0, 64, 128, 3); x.fillRect(0, 0, 3, 128); x.fillRect(64, 0, 3, 128);
-  const tx = new THREE.CanvasTexture(c);
-  tx.wrapS = tx.wrapT = THREE.RepeatWrapping;
-  tx.repeat.set(6000/192, 6000/192);
-  return tx;
-}
-const PSC = 1.9;   // people are ~114 world units tall: measured Pizza Ready sits at 7.8-10.7% of screen height
-const PERSON_H = 60;   // primitive rig height in world units, before PSC
-function person3D(shirt, opts) {
-  opts = opts || {};
-  const role = (opts && opts.role) || 'candidate';
-  const proto = R3.art && (R3.art.person[role] || R3.art.person.candidate);
-  if (proto) {
-    const g = fitArt(proto, 44, PERSON_H, 44, true);
-    g.scale.setScalar(PSC);
-    const find = n => { let f = null; g.traverse(o => { if (!f && o.name === n) f = o; }); return f; };
-    const body = find('Body'), head = find('Head'), tie = find('Tie'), cse = find('Case');
-    const stub = new THREE.Object3D();
-    // fitArt centres the model on its box; people stand on the floor, so put() lifts it
-    g.userData = { body: body || stub, head: head || stub, tie: tie || stub, cse: cse || stub, baseY: PERSON_H / 2 * PSC };
-    if (body && body.material) body.material = body.material.clone();
-    return g;
-  }
-  const g = new THREE.Group();
-  g.scale.setScalar(PSC);
-  const legs = new THREE.Mesh(new THREE.CylinderGeometry(7, 7.5, 15, 10), M3(opts.legs || '#3A3A46'));
-  legs.position.y = 7.5; legs.castShadow = true; g.add(legs);
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(10.5, 11.5, 25, 14), M3(shirt));
-  body.position.y = 27.5; body.castShadow = true; g.add(body);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(11, 18, 14), M3(opts.skin || '#F2C9A0'));
-  head.position.y = 49; head.castShadow = true; g.add(head);
-  const hair = new THREE.Mesh(new THREE.SphereGeometry(11.5, 18, 10, 0, Math.PI*2, 0, Math.PI*0.52), M3(opts.hair || '#33261A'));
-  hair.position.y = 49.6; hair.castShadow = true; g.add(hair);
-  const tie = new THREE.Mesh(new THREE.BoxGeometry(5, 14, 3), M3('#C9553C'));
-  tie.position.set(0, 28, 10); tie.visible = false; g.add(tie);
-  const cse = new THREE.Mesh(new THREE.BoxGeometry(13, 11, 6), M3('#6B4F35'));
-  cse.position.set(13, 20, 3); cse.visible = false; cse.castShadow = true; g.add(cse);
-  g.userData = { body, head, tie, cse };
-  return g;
-}
-
-function init3D() {
-  if (R3 || !GL3 || typeof THREE === 'undefined') return;
-  const glc = $('gl');
-  if (!glc || !glc.getContext) return;
-  let renderer;
-  try { renderer = new THREE.WebGLRenderer({ canvas: glc, antialias: true }); } catch (e) { return; }
-  glc.className = 'on';
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color('#D8EEF4');
-  const camera = new THREE.PerspectiveCamera(34, 1, 10, 20000);
-
-  scene.add(new THREE.HemisphereLight(0xffffff, 0xd6c6ac, 0.82));
-  const sun = new THREE.DirectionalLight(0xfff6e2, 0.42);
-  sun.castShadow = true;
-  sun.shadow.mapSize.width = sun.shadow.mapSize.height = 1024;
-  const sc = sun.shadow.camera;
-  sc.left = -700; sc.right = 700; sc.top = 700; sc.bottom = -700; sc.near = 100; sc.far = 2600;
-  sun.shadow.bias = -0.0009;
-  scene.add(sun); scene.add(sun.target);
-
-  const groundMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), groundMat);
-  ground.rotation.x = -Math.PI/2;
-  ground.position.set(VW/2, 0, VH/2);
-  ground.receiveShadow = true;
-  scene.add(ground);
-
-  const wallBack = box3D(2600, 230, 160, '#4EC0CE', false);
-  wallBack.position.set(VW/2, 115, -90);
-  scene.add(wallBack);
-  const trim = box3D(2600, 20, 190, '#FFFFFF', false);
-  trim.position.set(VW/2, 240, -90);
-  scene.add(trim);
-  const wallL = box3D(160, 210, VH + 700, '#4EC0CE', false);
-  wallL.position.set(-100, 105, VH/2); scene.add(wallL);
-  const wallR = box3D(160, 210, VH + 700, '#4EC0CE', false);
-  wallR.position.set(VW + 100, 105, VH/2); scene.add(wallR);
-
-  R3 = { renderer, scene, camera, sun, ground, groundMat, wallBack, trim, wallL, wallR,
-         st: {}, pads: {}, people: {}, bills: [], papers: [], country: -1 };
-  resize3D();
-}
-function resize3D() {
-  if (!R3) return;
-  R3.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
-  R3.renderer.setSize(cssW, cssH, true);
-  R3.camera.aspect = cssW / cssH;
-  R3.camera.updateProjectionMatrix();
-}
-function camera3D() {
-  const d = VIEW_W * 2.4;                       // characters land at ~9.4% of screen height (Pizza Ready: 7.8-10.7%)
-  R3.camera.position.set(camX, d * 0.82, camY + d * 0.66);
-  R3.camera.lookAt(camX, 0, camY + 30);
-  R3.sun.position.set(camX - 520, 950, camY - 220);
-  R3.sun.target.position.set(camX, 0, camY);
-  R3.sun.target.updateMatrixWorld();
-}
-// world point (+ height) -> 2D overlay pixels
-function proj(x, y, h) {
-  const v = new THREE.Vector3(x, h || 0, y).project(R3.camera);
-  return { x: (v.x*0.5 + 0.5) * cssW, y: (-v.y*0.5 + 0.5) * cssH, z: v.z };
-}
-function onScreen(p, m) {
-  m = m || 70;
-  return p.z < 1 && p.x > -m && p.x < cssW + m && p.y > -m && p.y < cssH + m;
-}
-
-// heights are relative to a ~114-unit person: waist ~46, chest ~72, head ~114
-const ST3 = {
-  printer: { col:'#E8BE76', h:74 },
-  desk:    { col:'#8ED4AC', h:48 },
-  booth:   { col:'#9BC6EE', h:8 },
-  zone:    { col:'#F0E2C2', h:4 },
-  bench:   { col:'#C6E8D2', h:4 },
-  lobby:   { col:'#F2E4CC', h:5 },
-  mgr:     { col:'#CDA9F0', h:50 },
-  banner:  { col:'#F79BCC', h:60 },
-  bank:    { col:'#E6D8B8', h:78 },
-  door:    { col:'#7A6244', h:128 },
-  shred:   { col:'#96969E', h:52 },
-};
-// ---- Artist-supplied models -------------------------------------------------
-// Drop .glb files in assets/ and name them here; anything left blank keeps the
-// built-in primitive, so the game always runs with a partial art delivery.
-// See ASSETS.md for the full spec handed to the designer.
-const ART = {
-  st: { printer:'', desk:'', booth:'', mgr:'', bank:'', banner:'', door:'', shred:'', lobby:'', zone:'', bench:'' },
-  person: { player:'', sourcer:'', rec:'', am:'', fin:'', candidate:'', client:'' },
-};
-
-function loadArt() {
-  if (!R3 || typeof THREE.GLTFLoader !== 'function') return;
-  R3.art = { st:{}, person:{} };
-  const loader = new THREE.GLTFLoader();
-  const grab = (bucket, key, url) => loader.load(url, gl => {
-    const m = gl.scene;
-    m.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-    R3.art[bucket][key] = m;
-    if (bucket === 'st' && R3.st[key]) { R3.scene.remove(R3.st[key]); delete R3.st[key]; }
-    if (bucket === 'person') for (const r in R3.people) R3.people[r].forEach(e => R3.scene.remove(e));
-    R3.people = {};   // rebuilt next frame from the new prototype
-  }, null, () => console.warn('art: could not load ' + url));
-  for (const k in ART.st) if (ART.st[k]) grab('st', k, ART.st[k]);
-  for (const k in ART.person) if (ART.person[k]) grab('person', k, ART.person[k]);
-}
-
-// Scale an artist model to the footprint the layout reserves for it, base on the floor.
-// Fits on the ground footprint only: anything the artist builds upward (a monitor, a
-// sign) then rises naturally instead of shrinking the whole model to fit a height cap.
-function fitArt(proto, w, h, d, byHeight) {
-  const m = proto.clone(true);
-  const b = new THREE.Box3().setFromObject(m), s = b.getSize(new THREE.Vector3());
-  const k = byHeight ? h / (s.y || 1) : Math.min(w / (s.x || 1), d / (s.z || 1));
-  m.scale.setScalar(k);
-  const b2 = new THREE.Box3().setFromObject(m);
-  const wrap = new THREE.Group();
-  m.position.y -= b2.min.y + h/2;          // wrapper origin stays the box centre, like the primitives
-  m.position.x -= (b2.min.x + b2.max.x) / 2;
-  m.position.z -= (b2.min.z + b2.max.z) / 2;
-  wrap.add(m);
-  return wrap;
-}
-
-function st3D(key, rect, col, h, on) {
-  let m = R3.st[key];
-  if (!m && R3.art && R3.art.st[key]) {
-    m = fitArt(R3.art.st[key], rect.w, h, rect.h);
-    R3.st[key] = m; R3.scene.add(m);
-  }
-  if (!m) {
-    m = box3D(rect.w, h, rect.h, col);
-    const cap = new THREE.Mesh(new THREE.BoxGeometry(rect.w - 12, 4, rect.h - 12), M3(shade(col, 1.07)));
-    cap.position.y = h/2 + 2; cap.castShadow = false; m.add(cap);   // gentle top highlight, not a hard edge
-    R3.st[key] = m; R3.scene.add(m);
-  }
-  m.visible = on !== false;
-  m.position.set(rect.x + rect.w/2, h/2, rect.y + rect.h/2);
-}
-
-function sync3D() {
-  const C = COUNTRIES[state.country];
-  if (R3.country !== state.country) {
-    R3.country = state.country;
-    const tx = floorTex(C);
-    if (tx) { R3.groundMat.map = tx; R3.groundMat.needsUpdate = true; }
-    [R3.wallBack, R3.wallL, R3.wallR].forEach(w => w.material.color.set(shade(C.wall, 1.12)));
-    R3.trim.material.color.set(shade(C.wall, 1.16));
-  }
-
-  st3D('printer', L.printer, ST3.printer.col, ST3.printer.h);
-  st3D('shred', L.shred, ST3.shred.col, ST3.shred.h);
-  st3D('desk',  L.desk,  ST3.desk.col,  ST3.desk.h,  built('desk'));
-  st3D('zone',  L.zone,  ST3.zone.col,  ST3.zone.h,  built('desk'));
-  st3D('booth', L.booth, ST3.booth.col, ST3.booth.h, built('booth'));
-  st3D('bench', BENCH,   ST3.bench.col, ST3.bench.h, built('booth'));
-  st3D('lobby', L.lobby, ST3.lobby.col, ST3.lobby.h, built('lobby'));
-  st3D('door',  L.door,  ST3.door.col,  ST3.door.h,  built('lobby'));
-  st3D('mgr',   L.mgr,   ST3.mgr.col,   ST3.mgr.h,   built('mgr'));
-  st3D('bank',  BUILD.bank.rect(), ST3.bank.col, ST3.bank.h, built('bank'));
-  st3D('banner', L.banner, ST3.banner.col, ST3.banner.h, built('promo'));
-
-  for (let i = 0; i < 6; i++) {
-    const key = 'cub' + i;
-    let m = R3.st[key];
-    if (!m) { m = box3D(62, 66, 76, '#F2F8FF'); R3.st[key] = m; R3.scene.add(m); }
-    m.visible = built('booth') && i < boothCap();
-    if (m.visible) m.position.set(boothSlots[i].x, 33 + ST3.booth.h, L.booth.y + 34);
-  }
-
-  Object.keys(BUILD).forEach(k => {
-    let m = R3.pads['p' + k];
-    if (!m) { m = box3D(140, 12, 64, '#FFE08A', false); R3.pads['p' + k] = m; R3.scene.add(m); }
-    if (built(k)) { m.visible = false; return; }
-    const r = BUILD[k].rect();
-    m.visible = true;
-    m.material.color.set(state.cash >= buildCost(k) ? '#FFE08A' : '#D8D2E0');
-    m.position.set(r.x + r.w/2, 6, r.y + r.h/2);
-  });
-
-  const used = {};
-  const bobAt = (seed, moving) => moving ? Math.sin(performance.now()/70 + seed)*3 : Math.sin(performance.now()/420 + seed)*1.2;
-  const put = (x, y, shirt, sc, seed, moving, opts) => {
-    const role = (opts && opts.role) || 'candidate';
-    const pool = R3.people[role] || (R3.people[role] = []);
-    const i = used[role] || 0; used[role] = i + 1;
-    let e = pool[i];
-    if (!e) { e = person3D(shirt, { role }); pool[i] = e; R3.scene.add(e); }
-    e.visible = true;
-    if (e.userData.body.material) e.userData.body.material.color.set(shirt);
-    e.userData.tie.visible = !!(opts && opts.tie);
-    e.userData.cse.visible = !!(opts && opts.cse);
-    e.scale.setScalar(sc * PSC);
-    e.position.set(x, (e.userData.baseY || 0) * sc + bobAt(seed, moving), y);
-    return e;
-  };
-
-  put(player.x, player.y, '#F5F0E4', 1.15, 1, player.moving, { tie:true, role:'player' });
-  candidates.forEach(c => put(c.x, c.y, VERTS[c.vert].color, 0.86, c.bob || 0, c.st === 'follow' || c.st === 'expire', { role:'candidate' }));
-  clients.forEach(cl => put(cl.x, cl.y, cl.vip ? '#C9A227' : '#2C2D36', 1.0, cl.bob || 0, cl.st !== 'wait', { cse:true, role:'client' }));
-  [['sourcers','sourcer'],['recs','rec'],['ams','am'],['fins','fin']].forEach(([list, role]) => emp[list].forEach(u =>
-    put(u.x, u.y, STAFF_UNIFORM, 0.96, u.o || 0, !!u.mv, { role })));
-  for (const role in R3.people) {
-    const pool = R3.people[role];
-    for (let i = used[role] || 0; i < pool.length; i++) pool[i].visible = false;
-  }
-
-  let b = 0;
-  bills.forEach(x => {
-    let m = R3.bills[b];
-    if (!m) { m = box3D(24, 8, 14, '#5FBF52'); R3.bills[b] = m; R3.scene.add(m); }
-    b++; m.visible = true; m.position.set(x.x, 5, x.y);
-    m.rotation.y = Math.sin(x.t*2 + x.x)*0.5;
-  });
-  for (let i = b; i < R3.bills.length; i++) R3.bills[i].visible = false;
-
-  let q = 0;
-  const paper = (x, y, h) => {
-    let m = R3.papers[q];
-    if (!m) { m = box3D(17, 3, 22, '#FFFFFF'); R3.papers[q] = m; R3.scene.add(m); }
-    q++; m.visible = true; m.position.set(x, h, y);
-  };
-  printerStack.forEach((v, i) => paper(rc(L.printer).x + 52, rc(L.printer).y, ST3.printer.h + 4 + i*4));
-  if (built('desk')) deskQueue.forEach((v, i) => paper(rc(L.desk).x - 46, rc(L.desk).y, ST3.desk.h + 4 + i*4));
-  player.carrying.forEach((v, i) => paper(player.x, player.y - 4, 72 + i*6));
-  for (let i = q; i < R3.papers.length; i++) R3.papers[i].visible = false;
-
-  camera3D();
-}
 let bgCv = null, bgKey = '';
 function drawStaticLayer(C) {
   // bake the architectural set dressing: floor, checkerboard, light pool, wall, windows, sign
@@ -2144,244 +1830,413 @@ function drawStaticLayer(C) {
   ctx = prev;
 }
 let vgCache = null;
-function plate(txt, x, y, h, col, size) {
-  const p2 = proj(x, y, h == null ? 70 : h);
-  if (!onScreen(p2)) return;
-  ctx.font = '600 ' + (size || 13) + 'px Fredoka, sans-serif'; ctx.textAlign = 'center';
-  const w = ctx.measureText(txt).width + 20;
-  ctx.fillStyle = '#FFFFFF'; rr(p2.x - w/2, p2.y - 13, w, 25, 12); ctx.fill();
-  ctx.strokeStyle = 'rgba(58,35,88,0.16)'; ctx.lineWidth = 2; rr(p2.x - w/2, p2.y - 13, w, 25, 12); ctx.stroke();
-  ctx.fillStyle = col || '#5B2A86';
-  ctx.fillText(txt, p2.x, p2.y + 5);
-}
-
 function render() {
-  if (!R3) return;
-  sync3D();
-  R3.renderer.render(R3.scene, R3.camera);
+  const C = COUNTRIES[state.country];
+  const key = state.country + '|' + Math.round(PXR*100) + '|' + (state.built ? Object.keys(state.built).filter(k => state.built[k]).join('') : '');
+  if (key !== bgKey) { drawStaticLayer(C); bgKey = key; }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = C.wall; ctx.fillRect(0, 0, cv.width, cv.height);
+  worldTransform();
+  if (bgCv) { try { ctx.drawImage(bgCv, -BG_M, -BG_M, VW + BG_M*2, VH + BG_M*2); } catch(e) {} }
 
-  screenTransform();
-  ctx.clearRect(0, 0, cssW, cssH);
 
-  // ---- station name plates and readouts ----
-  plate('Job board', rc(L.printer).x, L.printer.y, 104);
-  if (built('desk')) {
-    plate('Screening desk', rc(L.desk).x, L.desk.y, 100);
-    const zn = candidates.filter(c => c.st === 'wait').length, zF = zn >= zoneCap();
-    plate('Screened  ' + zn + '/' + zoneCap() + (zF ? '  ·  paused' : ''), rc(L.zone).x, L.zone.y, 34, zF ? '#B03A2E' : '#5B2A86', 12);
-  }
-  if (built('booth')) {
-    plate('Interview rooms', rc(L.booth).x, L.booth.y, 104, '#2C4E77');
-    const rn = candidates.filter(c => c.st === 'ready').length, rF = rn >= readyCap();
-    plate('Ready to place  ' + rn + '/' + readyCap() + (rF ? '  ·  paused' : ''), rc(BENCH).x, BENCH.y, 34, rF ? '#B03A2E' : '#2A7A45', 12);
-  }
-  if (built('lobby')) plate('Client lobby', rc(L.lobby).x, L.lobby.y, 38, '#6B5738');
-  if (built('mgr')) plate('Manager desk', rc(L.mgr).x, L.mgr.y, 108);
-  if (built('bank')) { const bk = BUILD.bank.rect(); plate('Bank', bk.x + bk.w/2, bk.y, 114); }
-  if (built('promo')) {
-    const bn = L.banner;
-    plate(rushOn ? 'Running ' + Math.ceil(rushLeft) + 's'
-        : promoCd > 0 ? 'Ready in ' + Math.ceil(promoCd) + 's'
-        : !trading() ? 'Opens after 3 placements'
-        : 'Promotion ' + fmt(promoCost()), bn.x + bn.w/2, bn.y, 104, '#7A3A66', 12);
-  }
 
-  // ---- build pads ----
   Object.keys(BUILD).forEach(k => {
     if (built(k)) return;
     const r = BUILD[k].rect(), cost = buildCost(k), afford = state.cash >= cost;
-    const c2 = proj(r.x + r.w/2, r.y + r.h/2, 34);
-    if (!onScreen(c2)) return;
-    ctx.textAlign = 'center';
-    ctx.font = '700 20px Fredoka, sans-serif';
-    const w = Math.max(100, ctx.measureText(fmt(cost)).width + 34);
-    ctx.fillStyle = afford ? '#FFF3C4' : '#E4DFEA';
-    rr(c2.x - w/2, c2.y - 25, w, 47, 14); ctx.fill();
-    ctx.strokeStyle = afford ? '#E0961A' : '#B9AEC6'; ctx.lineWidth = 3;
-    rr(c2.x - w/2, c2.y - 25, w, 47, 14); ctx.stroke();
-    ctx.fillStyle = afford ? '#7A4A05' : '#7C7290';
-    ctx.fillText(fmt(cost), c2.x, c2.y - 2);
-    ctx.font = '600 11px Fredoka, sans-serif';
-    ctx.fillText(BUILD[k].name, c2.x, c2.y + 15);
     const pr = padProg['b_' + k] || 0;
+    ctx.setLineDash([10, 8]);
+    ctx.strokeStyle = afford ? 'rgba(90,60,130,0.55)' : 'rgba(120,110,130,0.35)';
+    ctx.lineWidth = 3; rr(r.x, r.y, r.w, r.h, 16); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = afford ? 'rgba(255,236,190,0.45)' : 'rgba(220,214,226,0.38)';
+    rr(r.x, r.y, r.w, r.h, 16); ctx.fill();
+    ctx.fillStyle = 'rgba(70,55,30,0.09)';
+    rr(r.x+6, r.y+6, r.w-12, 8, 4); ctx.fill();
+    const cx2 = r.x + r.w/2, cy2 = r.y + r.h/2;
+    const pw = 132, ph = 54;
+    block3d(cx2-pw/2, cy2-ph/2, pw, ph, 7, afford ? '#FFE9A8' : '#E4DFEA', 14);
+    ctx.strokeStyle = afford ? '#E0961A' : '#B9AEC6'; ctx.lineWidth = 2.5;
+    rr(cx2-pw/2, cy2-ph/2, pw, ph, 14); ctx.stroke();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = afford ? '#7A4A05' : '#7C7290'; ctx.font = F(700, 19);
+    ctx.fillText(fmt(cost), cx2, cy2 + 1);
+    ctx.font = F(600, 11);
+    ctx.fillText(BUILD[k].name, cx2, cy2 + 18);
     if (pr > 0.02) {
       ctx.strokeStyle = '#2A8C39'; ctx.lineWidth = 6;
-      ctx.beginPath(); ctx.arc(c2.x, c2.y, 46, -Math.PI/2, -Math.PI/2 + (pr/0.9)*Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx2, cy2, ph, -Math.PI/2, -Math.PI/2 + (pr/0.9)*Math.PI*2); ctx.stroke();
     }
   });
 
-  const ring = (wx, wy, h, prog, max, col, rad) => {
-    if (prog <= 0.02) return;
-    const p2 = proj(wx, wy, h);
-    if (!onScreen(p2)) return;
-    ctx.strokeStyle = col; ctx.lineWidth = 6;
-    ctx.beginPath(); ctx.arc(p2.x, p2.y, rad || 44, -Math.PI/2, -Math.PI/2 + (prog/max)*Math.PI*2); ctx.stroke();
-  };
-  ring(rc(L.mgr).x, rc(L.mgr).y, 60, padProg.mgr || 0, 0.55, '#7A3A66');
-  ring(L.banner.x + L.banner.w/2, L.banner.y + L.banner.h/2, 60, padProg.promo || 0, 0.8, '#C065A8');
+  const sh = L.shred;
+  shredA = Math.max(0, Math.min(1, (shredA||0) + (player.carrying.length ? dt2*4 : -dt2*4)));
+  if (shredA > 0.01) {
+  ctx.save(); ctx.globalAlpha = shredA;
+  ctx.fillStyle = 'rgba(60,50,35,0.14)'; rr(sh.x+3, sh.y+5, sh.w, sh.h, 10); ctx.fill();
+  ctx.fillStyle = '#8A8A92'; rr(sh.x, sh.y, sh.w, sh.h, 10); ctx.fill();
+  ctx.strokeStyle = 'rgba(50,50,58,0.4)'; ctx.lineWidth = 2; rr(sh.x, sh.y, sh.w, sh.h, 10); ctx.stroke();
+  ctx.fillStyle = '#3E3E46'; rr(sh.x+10, sh.y+9, sh.w-20, 7, 3); ctx.fill();
+  ctx.fillStyle = '#5C5C64';
+  for (let i=0;i<3;i++) rr(sh.x+12+i*16, sh.y+26, 10, 22, 3), ctx.fill();
+  ctx.fillStyle = 'rgba(95,70,130,0.85)'; ctx.font = F(500, 12); ctx.textAlign='center';
+  ctx.fillText('Shredder', sh.x+sh.w/2, sh.y+sh.h+15);
+  ctx.restore();
+  }
 
-  // ---- travel arch ----
-  const mc2 = COUNTRIES[state.country].moveCost;
-  if (isFinite(mc2) && Math.max.apply(null, ownedOffices()) === state.country) {
-    const e2 = proj(L.exit.x + L.exit.w/2, L.exit.y + L.exit.h/2, 150);
-    if (onScreen(e2)) {
-      const afford = state.cash >= mc2;
-      ctx.textAlign = 'center'; ctx.font = '700 15px Fredoka, sans-serif';
-      const lbl = '✈ ' + COUNTRIES[state.country+1].name + '  ' + fmt(mc2);
-      const w = ctx.measureText(lbl).width + 26;
-      ctx.fillStyle = afford ? '#FFD23F' : 'rgba(190,180,200,0.9)';
-      rr(e2.x - w/2, e2.y - 17, w, 34, 16); ctx.fill();
-      ctx.fillStyle = afford ? '#5C4406' : '#F5EFE2';
-      ctx.fillText(lbl, e2.x, e2.y + 5);
-      ring(L.exit.x + L.exit.w/2, L.exit.y + L.exit.h/2, 150, padProg.exit || 0, 0.7, '#A87F14', 34);
+  const mc = COUNTRIES[state.country].moveCost;
+  if (isFinite(mc) && Math.max.apply(null, ownedOffices()) === state.country) {
+    const e = L.exit, afford = state.cash >= mc;
+    ctx.fillStyle = afford ? '#E8B93C' : 'rgba(150,135,105,0.5)';
+    rr(e.x, e.y, e.w, e.h, 14); ctx.fill();
+    ctx.strokeStyle = afford ? '#A87F14' : 'rgba(110,95,70,0.5)'; ctx.lineWidth = 2.5;
+    rr(e.x, e.y, e.w, e.h, 14); ctx.stroke();
+    ctx.fillStyle = afford ? '#5C4406' : '#F5EFE2';
+    ctx.textAlign = 'center';
+    const eLbl = '\u2708 ' + COUNTRIES[state.country+1].name;
+    fitFont(eLbl, 600, 13, e.w - 12);
+    ctx.fillText(eLbl, e.x+e.w/2, e.y+24);
+    fitFont(fmt(mc), 700, 15, e.w - 12);
+    ctx.fillText(fmt(mc), e.x+e.w/2, e.y+44);
+    if (afford) {
+      const pl = 1 + Math.sin(performance.now()/300)*0.5;
+      ctx.strokeStyle = 'rgba(232,185,60,' + (0.35*pl) + ')'; ctx.lineWidth = 5;
+      rr(e.x-5, e.y-5, e.w+10, e.h+10, 17); ctx.stroke();
     }
   }
 
-  // ---- interview progress ----
-  if (built('booth')) candidates.forEach(c => {
+  station(L.printer, '#F7D79B', 'Job board');
+  const pr = L.printer;
+  ctx.fillStyle = '#8A7A5E'; rr(pr.x+16, pr.y+18, 70, 46, 8); ctx.fill();
+  const feed = 1 - Math.min(1, printT/Math.max(0.001, printInterval()));
+  ctx.fillStyle = '#F6F2E6'; rr(pr.x+30, pr.y+58, 42, Math.max(1, 20*feed), 3); ctx.fill();
+  ctx.fillStyle = '#B9E0EE'; rr(pr.x+24, pr.y+26, 54, 14, 3); ctx.fill();
+  const scanX = pr.x+26 + ((performance.now()/9) % 50);
+  ctx.fillStyle = 'rgba(255,255,255,0.55)'; rr(scanX, pr.y+27, 5, 12, 2); ctx.fill();
+  const blink = printerStack.length >= printCap() ? (Math.sin(performance.now()/180) > 0 ? '#E06A4E' : '#7A4A40') : '#7DBB6C';
+  ctx.fillStyle = blink; ctx.beginPath(); ctx.arc(pr.x+82, pr.y+50, 4, 0, Math.PI*2); ctx.fill();
+  for (let i=0;i<printerStack.length;i++)
+    drawResume(pr.x+118, pr.y+66-i*6, Math.sin(i*2.3)*0.12, printerStack[i]);
+  const pips = (x,y,lvl,max2) => {
+    for (let i=0;i<max2;i++) { ctx.fillStyle = i<lvl ? '#D9A31B' : 'rgba(120,105,80,0.3)'; rr(x+i*13, y, 9, 4, 2); ctx.fill(); }
+  };
+  pips(pr.x+16, pr.y+pr.h-12, state.ups.printer, UPS.printer.max);
+  if (printerStack.length >= printCap()) {
+    ctx.fillStyle = '#8A6A3A'; ctx.font = F(500, 12); ctx.textAlign='center';
+    ctx.fillText('Tray full!', pr.x+pr.w/2, pr.y+pr.h+16);
+  }
+
+  if (built('desk')) station(L.desk, '#A9E3BE', 'Screening desk');
+  const dk = L.desk;
+  ctx.fillStyle = '#5F6E58'; rr(dk.x+18, dk.y+22, 56, 38, 6); ctx.fill();
+  ctx.fillStyle = '#CFEFC8'; rr(dk.x+23, dk.y+27, 46, 22, 3); ctx.fill();
+  if (deskQueue.length) {
+    const sy = dk.y+27 + ((performance.now()/6) % 22);
+    ctx.fillStyle = 'rgba(60,120,70,0.5)'; rr(dk.x+23, sy, 46, 2.5, 1); ctx.fill();
+    ctx.fillStyle = 'rgba(120,200,130,0.5)';
+    for (let i=0;i<3;i++) {
+      const t3 = (performance.now()/280 + i*0.7) % 1;
+      ctx.globalAlpha = 0.6*(1-t3);
+      ctx.beginPath(); ctx.arc(dk.x+46, dk.y+20 - t3*18, 3, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  for (let i=0;i<deskQueue.length;i++)
+    drawResume(dk.x+104+((i%3)*24), dk.y+38+Math.floor(i/3)*16, 0.1*((i%3)-1), deskQueue[i]);
+  if (deskQueue.length) bar(dk.x+16, dk.y+dk.h-14, dk.w-32, screenT/screenTime(), '#6FA85C');
+  pips(dk.x+84, dk.y+12, state.ups.screen, UPS.screen.max);
+
+  const z = L.zone;
+  if (built('desk')) {
+  const zn = candidates.filter(c=>c.st==='wait').length, zFull = zn >= zoneCap();
+  ctx.fillStyle = 'rgba(120,100,70,0.10)'; rr(z.x+5, z.y+7, z.w, z.h, 14); ctx.fill();
+  ctx.fillStyle = 'rgba(255,252,242,0.55)'; rr(z.x, z.y, z.w, z.h, 14); ctx.fill();
+  ctx.setLineDash([8,7]); ctx.strokeStyle = zFull ? 'rgba(200,90,60,0.7)' : 'rgba(110,95,65,0.45)'; ctx.lineWidth = 2;
+  rr(z.x, z.y, z.w, z.h, 14); ctx.stroke(); ctx.setLineDash([]);
+  zoneSlots.slice(0, zoneCap()).forEach(s => {
+    ctx.fillStyle = 'rgba(120,100,70,0.13)';
+    ctx.beginPath(); ctx.ellipse(s.x, s.y+16, 15, 6, 0, 0, Math.PI*2); ctx.fill();
+  });
+  ctx.fillStyle = zFull ? '#B03A2E' : 'rgba(95,70,130,0.8)'; ctx.font = F(600, 13); ctx.textAlign='center';
+  ctext('Screened  ' + zn + '/' + zoneCap() + (zFull ? '  ·  screening paused' : ''), z.x+z.w/2, z.y-30);
+  }
+
+
+
+  if (built('booth')) station(L.booth, '#AFD4F7', 'Interview rooms', '#2C4E77');
+  const bo = L.booth;
+  if (built('booth')) {
+  for (let i=0;i<boothCap();i++) {
+    const s = boothSlots[i];
+    // a recessed cubicle: sunken floor, a back wall catching the light, side walls in shade
+    ctx.fillStyle = 'rgba(48,74,98,0.20)'; rr(s.x-27, bo.y+10, 54, 104, 10); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.62)'; rr(s.x-24, bo.y+16, 48, 96, 8); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.9)'; rr(s.x-24, bo.y+16, 48, 16, 8); ctx.fill();
+    ctx.fillStyle = 'rgba(48,74,98,0.13)'; rr(s.x+16, bo.y+16, 8, 96, 4); ctx.fill();
+    ctx.strokeStyle = 'rgba(60,90,115,0.30)'; ctx.lineWidth = 1.8; rr(s.x-24, bo.y+16, 48, 96, 8); ctx.stroke();
+    ctx.fillStyle = 'rgba(60,90,115,0.38)'; rr(s.x-13, bo.y+24, 26, 13, 3); ctx.fill();
+  }
+
+  candidates.forEach(c => {
     if (c.st !== 'booth') return;
     const s = boothSlots[c.bslot];
-    const p2 = proj(s.x, L.booth.y + 84, 92);
-    if (!onScreen(p2)) return;
-    const staffed = roomRec[c.bslot] || c.bslot === playerRoom();
-    ctx.fillStyle = 'rgba(60,50,35,0.28)'; rr(p2.x-24, p2.y, 48, 9, 4); ctx.fill();
-    ctx.fillStyle = staffed ? '#6FA85C' : '#A6B0BC';
-    rr(p2.x-24, p2.y, Math.max(5, 48*Math.min(1,(c.iT||0)/interviewTime())), 9, 4); ctx.fill();
-    if (!staffed) {
-      ctx.fillStyle = 'rgba(80,90,105,0.9)'; ctx.font = '600 10px Fredoka, sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText('no interviewer', p2.x, p2.y + 22);
+    if (roomRec[c.bslot] || c.bslot === playerRoom()) {
+      bar(s.x-20, bo.y+bo.h-16, 40, Math.min(1, (c.iT||0)/interviewTime()), '#6FA85C');
+      const talk = Math.sin(performance.now()/380 + c.bslot*1.7) > 0;
+      const bx2 = talk ? s.x+13 : s.x-13, by2 = talk ? bo.y+22 : s.y-40;
+      ctx.fillStyle = '#FFFFFF'; rr(bx2-11, by2-8, 22, 15, 7); ctx.fill();
+      ctx.strokeStyle = 'rgba(60,90,115,0.4)'; ctx.lineWidth = 1.4; rr(bx2-11, by2-8, 22, 15, 7); ctx.stroke();
+      ctx.fillStyle = '#5A7EA8';
+      for (let i=0;i<3;i++) { ctx.beginPath(); ctx.arc(bx2-5+i*5, by2, 1.6, 0, Math.PI*2); ctx.fill(); }
+    } else {
+      ctx.fillStyle = 'rgba(90,100,115,0.75)';
+      rr(s.x-11, bo.y+bo.h-20, 8, 13, 2); ctx.fill();
+      rr(s.x+3, bo.y+bo.h-20, 8, 13, 2); ctx.fill();
+      bar(s.x-20, bo.y+bo.h-16, 40, Math.min(1, (c.iT||0)/interviewTime()), '#A6B0BC');
+      ctx.font = F(600, 10); ctx.textAlign = 'center';
+      ctx.fillText('no interviewer', s.x, bo.y+bo.h-10);
     }
   });
+  const rn = candidates.filter(c=>c.st==='ready').length, rFull = rn >= readyCap();
+  ctx.fillStyle = 'rgba(60,110,75,0.10)'; rr(BENCH.x+5, BENCH.y+7, BENCH.w, BENCH.h, 14); ctx.fill();
+  ctx.fillStyle = 'rgba(246,255,248,0.6)'; rr(BENCH.x, BENCH.y, BENCH.w, BENCH.h, 14); ctx.fill();
+  ctx.setLineDash([8,7]); ctx.strokeStyle = rFull ? 'rgba(200,90,60,0.7)' : 'rgba(60,120,80,0.4)'; ctx.lineWidth = 2;
+  rr(BENCH.x, BENCH.y, BENCH.w, BENCH.h, 14); ctx.stroke(); ctx.setLineDash([]);
+  readySpots.slice(0, readyCap()).forEach(s => {
+    ctx.fillStyle = 'rgba(60,120,80,0.14)';
+    ctx.beginPath(); ctx.ellipse(s.x, s.y+16, 15, 6, 0, 0, Math.PI*2); ctx.fill();
+  });
+  ctx.fillStyle = rFull ? '#B03A2E' : 'rgba(60,110,75,0.85)'; ctx.font = F(600, 13); ctx.textAlign='center';
+  ctext('Ready to place  ' + rn + '/' + readyCap() + (rFull ? '  ·  interviews paused' : ''), BENCH.x + BENCH.w/2, BENCH.y - 12);
+  }
 
-  // ---- candidate badges ----
-  candidates.forEach(c => {
-    const p2 = proj(c.x, c.y, 78);
-    if (!onScreen(p2)) return;
-    if (c.rej) { drawCross(p2.x + 18, p2.y, 11, 1); return; }
+  // the finance exec banks here - give it a building so the loop is legible
+  if (built('bank')) {
+  const bk = { x: FIN_POST.x - 42, y: FIN_POST.y - 66, w: 84, h: 62 };
+  block3d(bk.x, bk.y, bk.w, bk.h, 9, '#EBDFC6', 10);
+  ctx.fillStyle = '#8C6BB1';
+  ctx.beginPath();
+  ctx.moveTo(bk.x + 4, bk.y + 20); ctx.lineTo(bk.x + bk.w/2, bk.y - 4); ctx.lineTo(bk.x + bk.w - 4, bk.y + 20);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#FFFDF6';
+  for (let i = 0; i < 3; i++) rr(bk.x + 15 + i*20, bk.y + 24, 9, 26, 2), ctx.fill();
+  ctx.fillStyle = '#6E5490'; rr(bk.x + 8, bk.y + 50, bk.w - 16, 7, 3); ctx.fill();
+  ctx.fillStyle = '#C9922A'; ctx.beginPath(); ctx.arc(bk.x + bk.w/2, bk.y + 34, 8, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#FFF3C4'; ctx.font = F(700, 10); ctx.textAlign = 'center';
+  ctx.fillText('$', bk.x + bk.w/2, bk.y + 38);
+  ctx.fillStyle = 'rgba(95,70,130,0.85)'; ctx.font = F(600, 12);
+  ctext('Bank', bk.x + bk.w/2, bk.y - 12);
+  }
+
+  if (built('promo')) {
+  const bn = L.banner;
+  const promoLocked = !trading();
+  const promoReady = !promoLocked && !rushOn && promoCd <= 0;
+  block3d(bn.x, bn.y, bn.w, bn.h, 10, promoReady ? '#FF9ED2' : '#C9BCD4', 12);
+  ctx.fillStyle = 'rgba(255,255,255,0.9)'; rr(bn.x+9, bn.y+9, bn.w-18, bn.h-34, 7); ctx.fill();
+  ctx.fillStyle = '#8A6E4C'; rr(bn.x+bn.w/2-13, bn.y+16, 26, 16, 3); ctx.fill();
+  ctx.fillStyle = promoReady ? '#7A3A66' : '#8A8078';
+  ctx.font = F(700, 10); ctx.textAlign = 'center';
+  ctx.fillText('PROMO', bn.x+bn.w/2, bn.y+44);
+  ctx.font = F(600, 13);
+  ctx.fillStyle = 'rgba(59,50,39,0.75)';
+  if (promoLocked) ctext('Opens after 3 placements', bn.x+bn.w/2, bn.y-10);
+  else if (rushOn) ctext('Running ' + Math.ceil(rushLeft) + 's', bn.x+bn.w/2, bn.y-10);
+  else if (promoCd > 0) ctext('Ready in ' + Math.ceil(promoCd) + 's', bn.x+bn.w/2, bn.y-10);
+  else ctext('Promotion ' + fmt(promoCost()), bn.x+bn.w/2, bn.y-10);
+  if (padProg.promo > 0.02) {
+    ctx.strokeStyle = '#C065A8'; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.arc(bn.x+bn.w/2, bn.y+bn.h/2, 56, -Math.PI/2, -Math.PI/2 + (padProg.promo/0.8)*Math.PI*2); ctx.stroke();
+  }
+  }
+
+  if (built('mgr')) station(L.mgr, '#DDBDF5', 'Manager desk');
+  if ((padProg.mgr||0) > 0.02) {
+    const mc2 = rc(L.mgr);
+    ctx.strokeStyle = '#7A3A66'; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.arc(mc2.x, mc2.y, 58, -Math.PI/2, -Math.PI/2 + (padProg.mgr/0.55)*Math.PI*2); ctx.stroke();
+  }
+  const mg = L.mgr;
+  ctx.fillStyle = '#7A5E92'; rr(mg.x+20, mg.y+24, 52, 36, 6); ctx.fill();
+  ctx.fillStyle = '#EBDFF5'; rr(mg.x+25, mg.y+29, 42, 20, 3); ctx.fill();
+  ctx.fillStyle = '#6A5480'; ctx.font = F(500, 12); ctx.textAlign='center';
+  ctx.fillText('Upgrades', mg.x+mg.w/2, mg.y+mg.h+16);
+
+  const d = L.door;
+  ctx.fillStyle = '#8A6E4C'; rr(d.x, d.y, d.w, d.h, 8); ctx.fill();
+  ctx.fillStyle = '#6E5638'; rr(d.x+8, d.y+8, d.w-16, d.h-16, 6); ctx.fill();
+  ctx.fillStyle = '#D9C9A8'; ctx.beginPath(); ctx.arc(d.x+d.w-18, d.y+d.h/2, 4, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(95,70,130,0.7)'; ctx.font = F(500, 12); ctx.textAlign='center';
+  ctx.fillText('Clients', d.x+d.w/2, d.y-8);
+
+  const lb = L.lobby;
+  if (built('lobby')) {
+  ctx.fillStyle = 'rgba(110,90,60,0.16)'; rr(lb.x+6, lb.y+9, lb.w, lb.h, 20); ctx.fill();
+  ctx.fillStyle = 'rgba(238,228,208,0.95)'; rr(lb.x, lb.y+6, lb.w, lb.h, 20); ctx.fill();
+  ctx.fillStyle = 'rgba(255,252,242,0.96)'; rr(lb.x, lb.y, lb.w, lb.h, 20); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.6)'; rr(lb.x+8, lb.y+5, lb.w-16, 6, 3); ctx.fill();
+  ctx.strokeStyle = 'rgba(120,100,70,0.22)'; ctx.lineWidth = 3; rr(lb.x, lb.y, lb.w, lb.h, 20); ctx.stroke();
+  ctx.fillStyle = 'rgba(110,95,65,0.75)'; ctx.font = F(600, 13); ctx.textAlign = 'center';
+  ctx.fillText('Client lobby', lb.x + lb.w/2, lb.y - 10);
+  clientSlots.slice(0, clientCap()).forEach(s => {
+    ctx.fillStyle = 'rgba(120,100,70,0.13)';
+    rr(s.x-26, s.y+16, 52, 12, 6); ctx.fill();
+  });
+  }
+
+  bills.forEach(drawBill);
+
+  // bigger sprites overlap in the queues, so draw back-to-front
+  candSorted.length = 0;
+  for (let i = 0; i < candidates.length; i++) candSorted.push(candidates[i]);
+  candSorted.sort((a, b) => a.y - b.y);
+  candSorted.forEach(c => {
+    if (!c.done) ctx.globalAlpha = 0.9;
+    drawPerson(c.x, c.y, CAND_SC, VERTS[c.vert].color, { seed:c.bob, moving:c.st==='follow'||c.st==='joining'||c.st==='expire',
+      tie: c.done ? VERTS[c.vert].dark : null });
+    ctx.globalAlpha = 1;
+
+    // screened candidates still carry their paperwork; interviewed ones wear a green tick
+    const bdy = c.y - 30*CAND_SC, bdx = c.x - 15*CAND_SC;
     if (c.done) {
-      ctx.fillStyle = '#2F8F4E'; ctx.beginPath(); ctx.arc(p2.x - 17, p2.y, 10, 0, Math.PI*2); ctx.fill();
-      ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 3; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(p2.x-21, p2.y); ctx.lineTo(p2.x-18, p2.y+4); ctx.lineTo(p2.x-12, p2.y-4); ctx.stroke();
-      ctx.lineCap = 'butt';
-    } else if (c.st === 'wait' || c.st === 'follow') {
-      ctx.fillStyle = '#FFFDF4'; rr(p2.x-24, p2.y-9, 14, 18, 3); ctx.fill();
-      ctx.strokeStyle = 'rgba(59,50,39,0.4)'; ctx.lineWidth = 1.4; rr(p2.x-24, p2.y-9, 14, 18, 3); ctx.stroke();
-      ctx.fillStyle = VERTS[c.vert].color; rr(p2.x-24, p2.y-9, 14, 5, 2); ctx.fill();
-    }
-    if (c.st === 'ready' && (c.readyT||0) > 20) {
-      ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(p2.x+17, p2.y-6, 8, 0, Math.PI*2); ctx.fill();
-      ctx.strokeStyle = '#B03A2E'; ctx.lineWidth = 1.8;
-      ctx.beginPath(); ctx.arc(p2.x+17, p2.y-6, 8, 0, Math.PI*2); ctx.stroke();
-      const ang = ((c.readyT-20)/6)*Math.PI*2 - Math.PI/2;
-      ctx.beginPath(); ctx.moveTo(p2.x+17, p2.y-6); ctx.lineTo(p2.x+17+Math.cos(ang)*5, p2.y-6+Math.sin(ang)*5); ctx.stroke();
-    }
-  });
-
-  // ---- client orders ----
-  clients.forEach(cl => {
-    if (cl.st !== 'wait') return;
-    const p2 = proj(cl.x, cl.y, 104);
-    if (!onScreen(p2)) return;
-    ctx.fillStyle = '#FFFFFF'; rr(p2.x-33, p2.y-20, 66, 35, 11); ctx.fill();
-    ctx.strokeStyle = VERTS[cl.vert].color; ctx.lineWidth = 2.5; rr(p2.x-33, p2.y-20, 66, 35, 11); ctx.stroke();
-    ctx.fillStyle = VERTS[cl.vert].color;
-    ctx.beginPath(); ctx.arc(p2.x-15, p2.y-6, 5, 0, Math.PI*2); ctx.fill();
-    rr(p2.x-20, p2.y+1, 10, 8, 3); ctx.fill();
-    ctx.fillStyle = VERTS[cl.vert].dark; ctx.font = '700 15px Fredoka, sans-serif'; ctx.textAlign = 'left';
-    ctx.fillText('×' + cl.need, p2.x-2, p2.y+1);
-    const pf = Math.max(0, cl.patience / cl.maxP);
-    ctx.fillStyle = 'rgba(60,50,35,0.22)'; rr(p2.x-31, p2.y+17, 62, 6, 3); ctx.fill();
-    ctx.fillStyle = pf > 0.5 ? '#7DBB6C' : pf > 0.25 ? '#E8A020' : '#D9534F';
-    rr(p2.x-31, p2.y+17, Math.max(4, 62*pf), 6, 3); ctx.fill();
-    if (cl.vip) {
-      ctx.fillStyle = '#C9A227'; rr(p2.x+24, p2.y-36, 44, 19, 9); ctx.fill();
-      ctx.fillStyle = '#FFFDF4'; ctx.font = '700 11px Fredoka, sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText('VIP x5', p2.x+46, p2.y-22);
-    }
-  });
-
-  // ---- staff role letters ----
-  [[emp.sourcers,'S'],[emp.recs,'R'],[emp.ams,'A'],[emp.fins,'F']].forEach(pair => pair[0].forEach(u => {
-    const p2 = proj(u.x, u.y, 46);
-    if (!onScreen(p2)) return;
-    ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(p2.x+14, p2.y, 9, 0, Math.PI*2); ctx.fill();
-    ctx.strokeStyle = STAFF_UNIFORM; ctx.lineWidth = 1.6;
-    ctx.beginPath(); ctx.arc(p2.x+14, p2.y, 9, 0, Math.PI*2); ctx.stroke();
-    ctx.fillStyle = STAFF_UNIFORM; ctx.font = '700 11px Fredoka, sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText(pair[1], p2.x+14, p2.y+4);
-  }));
-
-  // ---- that one is you ----
-  {
-    const p2 = proj(player.x, player.y, 116);
-    const pu = (Math.sin(performance.now()/300)+1)/2;
-    ctx.fillStyle = '#FFD23F';
-    ctx.beginPath();
-    ctx.moveTo(p2.x, p2.y + 15 + pu*3); ctx.lineTo(p2.x-12, p2.y - 2 + pu*3); ctx.lineTo(p2.x+12, p2.y - 2 + pu*3);
-    ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = '#8A5410'; ctx.lineWidth = 2.5; ctx.stroke();
-  }
-
-  // ---- guidance arrow ----
-  if (state.tut < TUT.length && !tourOn) {
-    const tg = TUT[state.tut].tgt();
-    const p2 = proj(tg.x, tg.y, 130 + Math.sin(performance.now()/220)*10);
-    if (onScreen(p2)) {
-      ctx.fillStyle = '#5FD16A';
+      ctx.fillStyle = '#2F8F4E';
+      ctx.beginPath(); ctx.arc(bdx, bdy, 9*CAND_SC, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 2.6*CAND_SC; ctx.lineCap = 'round';
       ctx.beginPath();
-      ctx.moveTo(p2.x, p2.y + 21); ctx.lineTo(p2.x-16, p2.y); ctx.lineTo(p2.x+16, p2.y);
-      ctx.closePath(); ctx.fill();
-      ctx.strokeStyle = '#2A8C39'; ctx.lineWidth = 3; ctx.stroke();
+      ctx.moveTo(bdx - 4*CAND_SC, bdy);
+      ctx.lineTo(bdx - 1.2*CAND_SC, bdy + 3.4*CAND_SC);
+      ctx.lineTo(bdx + 4.2*CAND_SC, bdy - 3.4*CAND_SC);
+      ctx.stroke(); ctx.lineCap = 'butt';
+    } else {
+      const pw = 13*CAND_SC, ph = 17*CAND_SC;
+      ctx.fillStyle = '#FFFDF4';
+      rr(bdx - pw/2, bdy - ph/2, pw, ph, 2.5*CAND_SC); ctx.fill();
+      ctx.strokeStyle = 'rgba(59,50,39,0.45)'; ctx.lineWidth = 1.4*CAND_SC;
+      rr(bdx - pw/2, bdy - ph/2, pw, ph, 2.5*CAND_SC); ctx.stroke();
+      ctx.fillStyle = VERTS[c.vert].color;
+      rr(bdx - pw/2, bdy - ph/2, pw, 4.5*CAND_SC, 2*CAND_SC); ctx.fill();
+      ctx.fillStyle = 'rgba(59,50,39,0.35)';
+      for (let i = 0; i < 2; i++) rr(bdx - pw/2 + 2.5*CAND_SC, bdy - 1 + i*4*CAND_SC, pw - 5*CAND_SC, 1.4*CAND_SC, 1); ctx.fill();
     }
-  }
-  if (player_followers().some(c => c.done)) {
-    const target = clients.find(cl => cl.st === 'wait' && cl.need > 0);
-    if (target) {
-      const p2 = proj(target.x, target.y, 160);
-      if (onScreen(p2)) {
-        ctx.fillStyle = '#8A6410'; ctx.font = '600 13px Fredoka, sans-serif'; ctx.textAlign = 'center';
-        ctx.fillText('wants ' + VERTS[target.vert].name, p2.x, p2.y);
+
+    if (c.rej) drawCross(c.x + 15*CAND_SC, c.y - 30*CAND_SC, 11*CAND_SC, 1);
+
+    if (c.st === 'ready' && (c.readyT||0) > 20) {
+      const wx = c.x+14, wy = c.y-36;
+      ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(wx, wy, 7, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#B03A2E'; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.arc(wx, wy, 7, 0, Math.PI*2); ctx.stroke();
+      const ang = ((c.readyT-20)/6)*Math.PI*2 - Math.PI/2;
+      ctx.beginPath(); ctx.moveTo(wx, wy); ctx.lineTo(wx+Math.cos(ang)*4.6, wy+Math.sin(ang)*4.6); ctx.stroke();
+    }
+  });
+
+  clients.forEach(cl => {
+    drawPerson(cl.x, cl.y, PEOPLE_SC, cl.vip ? '#C9A227' : '#23242C', { seed:cl.bob, moving:cl.st!=='wait', tie:cl.vip ? '#7A5C06' : VERTS[cl.vert].color, case:true, hair:'#3A3A3A' });
+    if (cl.vip) {
+      ctx.fillStyle = '#E8C23C';
+      const hy = cl.y - 36 + (cl.st!=='wait' ? Math.sin(performance.now()/70+cl.bob)*2.4 : Math.sin(performance.now()/420+cl.bob)*1.1);
+      ctx.beginPath();
+      ctx.moveTo(cl.x-9, hy+5); ctx.lineTo(cl.x-9, hy-4); ctx.lineTo(cl.x-4.5, hy); ctx.lineTo(cl.x, hy-6);
+      ctx.lineTo(cl.x+4.5, hy); ctx.lineTo(cl.x+9, hy-4); ctx.lineTo(cl.x+9, hy+5); ctx.closePath(); ctx.fill();
+      if (cl.st === 'wait') {
+        ctx.fillStyle = '#C9A227'; rr(cl.x+16, hy-8, 34, 17, 8); ctx.fill();
+        ctx.fillStyle = '#FFFDF4'; ctx.font = F(700, 11); ctx.textAlign = 'center';
+        ctx.fillText('VIP x5', cl.x+33, hy+4);
       }
     }
-  }
-
-  // ---- effects ----
-  parts.forEach(q => {
-    const s2 = proj(q.x, q.y, 46);
-    ctx.globalAlpha = Math.min(1, q.life*1.6);
-    ctx.fillStyle = q.col; ctx.fillRect(s2.x-q.sz/2, s2.y-q.sz/2, q.sz, q.sz);
-    ctx.globalAlpha = 1;
+    if (cl.st === 'wait') {
+      const bx = cl.x, by = cl.y - 74;
+      ctx.fillStyle = '#FFFFFF'; rr(bx-34, by-18, 68, 36, 10); ctx.fill();
+      ctx.strokeStyle = VERTS[cl.vert].color; ctx.lineWidth = 2.5; rr(bx-34, by-18, 68, 36, 10); ctx.stroke();
+      ctx.fillStyle = VERTS[cl.vert].color;
+      ctx.beginPath(); ctx.arc(bx-13, by-4, 5.5, 0, Math.PI*2); ctx.fill();
+      rr(bx-19, by+2, 12, 10, 4); ctx.fill();
+      ctx.fillStyle = VERTS[cl.vert].dark; ctx.font = F(700, 16); ctx.textAlign='left';
+      ctx.fillText('x' + cl.need, bx+1, by+7);
+      const pct = cl.patience/cl.maxP;
+      bar(bx-30, by+22, 60, pct, pct > 0.35 ? '#7DBB6C' : '#E06A4E');
+      if (pct < 0.55) {
+        ctx.strokeStyle = 'rgba(200,138,46,0.8)'; ctx.lineWidth = 2;
+        ctx.setLineDash([4,3]);
+        rr(bx-34, by-18, 68, 36, 10); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      if (pct < 0.32) {
+        ctx.globalAlpha = 0.55 + Math.sin(performance.now()/120)*0.45;
+        ctx.fillStyle = '#D64533'; ctx.font = F(800, 21); ctx.textAlign = 'center';
+        ctx.fillText('!', bx+44, by+3);
+        ctx.globalAlpha = 1;
+      }
+    }
   });
-  crossFx.forEach(c => { const s2 = proj(c.x, c.y, 66); drawCross(s2.x, s2.y, 11, Math.min(1, c.life*1.6)); });
+
+  emp.sourcers.forEach(s => {
+    drawStaff(s, 'S');
+    s.carrying.forEach((v,i) => drawResume(s.x, s.y-38-i*7, Math.sin(performance.now()/160+i)*0.09, v));
+  });
+  emp.ams.forEach(a => drawStaff(a, 'A'));
+  emp.fins.forEach(f => {
+    drawStaff(f, 'F');
+    for (let i=0;i<Math.min(f.n,5);i++) drawBill({ x:f.x, y:f.y-38-i*7, t:i*0.7, val:0 });
+  });
+  emp.recs.forEach(r => popWrap(r.x, r.y+16, r.pop || 0, () => drawStaff(r, 'R')));
+
+  const pr2 = playerRoom();
+  if (pr2 >= 0) {
+    const c2 = candidates.find(k => k.st === 'booth' && k.bslot === pr2);
+    if (c2) {
+      ctx.fillStyle = 'rgba(59,50,39,0.88)';
+      rr(player.x-42, player.y-84, 84, 22, 11); ctx.fill();
+      ctx.fillStyle = '#FFFFFF'; ctx.font = F(700, 12); ctx.textAlign = 'center';
+      ctx.fillText('Interviewing', player.x, player.y-69);
+    }
+  }
+  const pg = ctx.createRadialGradient(player.x, player.y+16, 4, player.x, player.y+16, 34);
+  pg.addColorStop(0, 'rgba(255,201,60,0.45)'); pg.addColorStop(1, 'rgba(255,201,60,0)');
+  ctx.fillStyle = pg;
+  ctx.beginPath(); ctx.ellipse(player.x, player.y+16, 34, 16, 0, 0, Math.PI*2); ctx.fill();
+  // ring on the floor + chevron overhead: this one is you
+  const ppu = (Math.sin(performance.now()/420)+1)/2;
+  ctx.strokeStyle = 'rgba(255,210,63,' + (0.55 + 0.3*ppu) + ')'; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.ellipse(player.x, player.y+18, 30 + 3*ppu, 13 + 1.5*ppu, 0, 0, Math.PI*2); ctx.stroke();
+  const chy = player.y - 78 * PEOPLE_SC/1.8 - 10 + Math.sin(performance.now()/300)*4;
+  ctx.fillStyle = '#FFD23F';
+  ctx.beginPath();
+  ctx.moveTo(player.x, chy + 15); ctx.lineTo(player.x - 12, chy); ctx.lineTo(player.x + 12, chy);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#8A5410'; ctx.lineWidth = 2.5; ctx.stroke();
+  popWrap(player.x, player.y+18, player.pop || 0, () => drawPerson(player.x, player.y, 1.08 * PEOPLE_SC, '#F5F0E4', { seed:1, moving:player.moving, tie:'#C9553C', hair:'#33261A' }));
+  player.carrying.forEach((v,i) =>
+    drawResume(player.x + Math.sin(performance.now()/150+i*1.1)*(1.5+i*0.8), player.y-46-i*7, Math.sin(performance.now()/150+i*1.1)*0.1, v));
+
+  crossFx.forEach(c => drawCross(c.x, c.y, 11, Math.min(1, c.life*1.6)));
   const chipS = cashChipScreen();
+  screenTransform();
   coinFx.forEach(c => {
     if (c.t < 0) return;
     const k = Math.min(1, c.t / c.dur), e2 = k*k*(3-2*k);
-    const s0 = proj(c.x0, c.y0, 24);
-    const cx2 = s0.x + (chipS.x - s0.x)*e2, cy2 = s0.y + (chipS.y - s0.y)*e2 - Math.sin(k*Math.PI)*70;
+    const sx0 = w2sx(c.x0), sy0 = w2sy(c.y0);
+    const cx2 = sx0 + (chipS.x - sx0)*e2, cy2 = sy0 + (chipS.y - sy0)*e2 - Math.sin(k*Math.PI)*70;
     ctx.fillStyle = '#FFC93C'; ctx.beginPath(); ctx.arc(cx2, cy2, 9, 0, Math.PI*2); ctx.fill();
     ctx.fillStyle = '#FFE9A8'; ctx.beginPath(); ctx.arc(cx2-3, cy2-3, 3.4, 0, Math.PI*2); ctx.fill();
     ctx.strokeStyle = '#C9922A'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(cx2, cy2, 9, 0, Math.PI*2); ctx.stroke();
   });
+  worldTransform();
+  parts.forEach(p => {
+    ctx.globalAlpha = Math.min(1, p.life*1.6);
+    ctx.fillStyle = p.col; ctx.fillRect(p.x-p.sz/2, p.y-p.sz/2, p.sz, p.sz);
+    ctx.globalAlpha = 1;
+  });
   floaters.forEach(f => {
-    const s2 = proj(f.x, f.y, 96);
     ctx.globalAlpha = Math.min(1, f.life*1.8);
-    ctx.font = '700 17px Fredoka, sans-serif'; ctx.textAlign = 'center';
+    ctx.font = FT(17); ctx.textAlign = 'center';
     ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-    ctx.strokeText(f.txt, s2.x, s2.y);
-    ctx.fillStyle = f.col; ctx.fillText(f.txt, s2.x, s2.y);
+    ctx.strokeText(f.txt, f.x, f.y);
+    ctx.fillStyle = f.col; ctx.fillText(f.txt, f.x, f.y);
     ctx.globalAlpha = 1;
   });
 
-  // ---- screen furniture ----
-  ctx.font = '500 12px Fredoka, sans-serif'; ctx.textAlign = 'right';
-  ctx.fillStyle = 'rgba(80,55,110,0.55)';
-  ctx.fillText('Placed ' + state.placed + '   Rejected ' + (state.rejected||0) + '   Lost ' + state.lost, cssW-12, cssH-12);
-
-  if (payFlash > 0) {
-    ctx.fillStyle = 'rgba(210,80,60,' + Math.min(0.28, payFlash*0.22) + ')';
-    ctx.fillRect(0, 0, cssW, cssH);
-  }
+  screenTransform();
   let pillY = 128;
   if (rushOn) {
     const pulse = 0.75 + Math.sin(performance.now()/160)*0.2;
@@ -2395,21 +2250,63 @@ function render() {
   }
   if (state.fast) {
     ctx.font = '700 14px Fredoka, sans-serif'; ctx.textAlign = 'center';
-    const bl = '⚡ 2x';
+    const bl = '\u26A1 ' + BOOST_X + 'x';
     const bbw = ctx.measureText(bl).width + 24;
     ctx.fillStyle = 'rgba(30,110,128,0.9)';
     rr(cssW/2 - bbw/2, pillY, bbw, 27, 13); ctx.fill();
     ctx.fillStyle = '#EAFBFF'; ctx.fillText(bl, cssW/2, pillY + 18);
   }
+  worldTransform();
+  screenTransform();
+  ctx.font = F(500, 12); ctx.textAlign = 'right';
+  ctx.fillStyle = 'rgba(80,55,110,0.55)';
+  ctx.fillText('Placed ' + state.placed + '   Rejected ' + (state.rejected||0) + '   Lost ' + state.lost, cssW-12, cssH-12);
+  worldTransform();
+  const carrying = player_followers().filter(c => c.done).length;
+  if (carrying) {
+    const target = clients.find(cl => cl.st==='wait' && cl.need > 0);
+    if (target) {
+      const ax = target.x, ay = target.y - 118 + Math.sin(performance.now()/220)*7;
+      ctx.fillStyle = '#C9A227';
+      ctx.beginPath(); ctx.moveTo(ax, ay+20); ctx.lineTo(ax-13, ay); ctx.lineTo(ax+13, ay); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#8A6410'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.font = F(600, 12); ctx.textAlign = 'center';
+      ctx.fillStyle = '#8A6410';
+      ctext('wants ' + VERTS[target.vert].name, ax, ay-8);
+    }
+  }
+  if (state.tut < TUT.length) {
+    const t = TUT[state.tut].tgt();
+    const bounce = Math.sin(performance.now()/220)*7;
+    // top-row targets carry a station label above them: float the arrow higher so it stays clear
+    const ay = t.y - (t.y < 260 ? 108 : 76) + bounce;
+    ctx.fillStyle = '#5FD16A';
+    ctx.beginPath();
+    ctx.moveTo(t.x, ay+26); ctx.lineTo(t.x-17, ay); ctx.lineTo(t.x+17, ay);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#2A8C39'; ctx.lineWidth = 3; ctx.stroke();
+  }
 
+  screenTransform();
+  if (payFlash > 0) {
+    ctx.fillStyle = 'rgba(210,80,60,' + Math.min(0.28, payFlash*0.22) + ')';
+    ctx.fillRect(0, 0, cssW, cssH);
+  }
+  if (!vgCache) {
+    vgCache = ctx.createRadialGradient(cssW/2, cssH/2, cssH*0.34, cssW/2, cssH/2, cssH*0.78);
+    vgCache.addColorStop(0, 'rgba(0,0,0,0)'); vgCache.addColorStop(1, 'rgba(60,48,30,0.16)');
+  }
+  ctx.fillStyle = vgCache; ctx.fillRect(0, 0, cssW, cssH);
+
+  screenTransform();
   if (tourOn) drawTour();
 
   if (joy) {
     ctx.globalAlpha = 0.3;
     ctx.strokeStyle = '#FFF6E4'; ctx.lineWidth = 5;
-    ctx.beginPath(); ctx.arc(joyScreen.x, joyScreen.y, 54, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(w2sx(joy.o.x), w2sy(joy.o.y), 54, 0, Math.PI*2); ctx.stroke();
     ctx.globalAlpha = 0.75;
-    const jx = joyScreen.x + joy.v.x, jy = joyScreen.y + joy.v.y;
+    const jx = w2sx(joy.o.x) + joy.v.x*WS, jy = w2sy(joy.o.y) + joy.v.y*WS;
     const kg = ctx.createRadialGradient(jx-6, jy-8, 4, jx, jy, 26);
     kg.addColorStop(0, '#FFFDF4'); kg.addColorStop(1, '#E5D9BC');
     ctx.fillStyle = kg;
@@ -2422,7 +2319,7 @@ function render() {
     const hy2 = cssH - 150;
     ctx.beginPath(); ctx.arc(cssW/2, hy2, 40 + 7*pu, 0, Math.PI*2); ctx.stroke();
     ctx.fillStyle = '#FFF6E4'; ctx.textAlign = 'center';
-    ctx.font = '600 30px Fredoka, sans-serif'; ctx.fillText('☝', cssW/2, hy2 + 10);
+    ctx.font = '600 30px Fredoka, sans-serif'; ctx.fillText('\u261D', cssW/2, hy2 + 10);
     ctx.font = '600 15px Fredoka, sans-serif'; ctx.fillText('drag to walk', cssW/2, hy2 + 56);
     ctx.globalAlpha = 1;
   }
@@ -2486,8 +2383,6 @@ function loop(t) {
 document.addEventListener('visibilitychange', () => { if (document.hidden) saveGame(); });
 
 (async function boot() {
-  init3D();
-  loadArt();
   resize();
   let wiped = false;
   try {
