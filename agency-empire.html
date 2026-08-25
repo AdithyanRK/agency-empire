@@ -25,15 +25,18 @@
   .hud { position:absolute; top:0; left:0; right:0; padding:calc(10px + env(safe-area-inset-top, 0px)) calc(12px + env(safe-area-inset-right, 0px)) 10px calc(12px + env(safe-area-inset-left, 0px)); display:flex; align-items:flex-start; justify-content:space-between; pointer-events:none; z-index:5; }
   .chip { background:linear-gradient(#7B45A8,var(--grape)); color:#FFF3FF; border:2px solid rgba(255,255,255,0.35); border-radius:18px; padding:8px 14px; font-size:14px; font-weight:700; line-height:1.2; box-shadow:0 4px 0 var(--grape-d), 0 6px 14px rgba(0,0,0,0.28); }
   .chip small { display:block; font-size:11px; opacity:0.8; font-weight:500; }
-  #cash { display:flex; align-items:center; gap:8px; font-weight:700; font-size:23px; letter-spacing:0.4px; color:var(--gold-ink); background:linear-gradient(#FFF3C4,#FFC93C); padding:7px 18px 7px 12px; border-radius:24px; border:2.5px solid #FFFDF0; box-shadow:0 4px 0 var(--gold-d), 0 7px 16px rgba(0,0,0,0.3); transition:transform 0.12s; }
+  #cash { pointer-events:auto; cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:11px;
+    font-weight:700; font-size:29px; line-height:1; letter-spacing:0.4px; color:var(--gold-ink);
+    background:linear-gradient(#FFF3C4,#FFC93C); padding:9px 24px 9px 14px; border-radius:28px;
+    border:3px solid #FFFDF0; box-shadow:0 5px 0 var(--gold-d), 0 8px 18px rgba(0,0,0,0.3); transition:transform 0.12s; }
+  #cash .cashcol { display:flex; flex-direction:column; align-items:flex-start; }
   #cash.pop { transform:scale(1.08); }
-  #cash::before { content:''; width:22px; height:22px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #FFE9A8, #E8B93C 60%, #C9922A); box-shadow:inset 0 -2px 0 rgba(0,0,0,0.15); }
+  #cash::before { content:''; flex:none; width:28px; height:28px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #FFE9A8, #E8B93C 60%, #C9922A); box-shadow:inset 0 -2px 0 rgba(0,0,0,0.15); }
   .hbtns { display:flex; gap:8px; }
   .hbtn { pointer-events:auto; width:42px; height:42px; border-radius:50%; border:none; background:var(--shade); backdrop-filter:blur(3px); color:#FFF6E4; font-size:17px; font-weight:600; cursor:pointer; font-family:inherit; box-shadow:0 3px 0 rgba(0,0,0,0.22); }
   .hbtn:active { transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,0.22); }
-  #payChip { pointer-events:auto; cursor:pointer; white-space:nowrap; font-size:12px; padding:6px 11px;
-    border-radius:14px; box-shadow:0 3px 0 var(--grape-d); align-self:center; font-family:inherit; }
-  #payChip small { display:none; }
+  #payChip { display:block; font-size:11.5px; font-weight:600; line-height:1.1; margin-top:1px;
+    color:#8A5A06; opacity:0.92; white-space:nowrap; }
   #objective { letter-spacing:0.2px; font-size:13px; max-width:74%; white-space:normal; line-height:1.25; position:absolute; top:84px; left:50%; transform:translateX(-50%); background:var(--paper); color:var(--ink); padding:9px 16px; border-radius:16px; font-weight:600; z-index:5; text-align:center; pointer-events:none; box-shadow:0 4px 0 rgba(59,50,39,0.18), 0 6px 14px rgba(0,0,0,0.2); }
   #toast { position:absolute; bottom:calc(26px + env(safe-area-inset-bottom, 0px)); left:50%; transform:translateX(-50%); background:var(--shade); backdrop-filter:blur(3px); color:#FFF6E4; padding:11px 20px; border-radius:16px; font-size:14px; font-weight:500; z-index:8; pointer-events:none; opacity:0; transition:opacity 0.3s, transform 0.3s; box-shadow:0 4px 0 rgba(0,0,0,0.2); }
   .ov { position:absolute; inset:0; background:rgba(20,16,10,0.5); z-index:10; display:none; align-items:flex-end; justify-content:center; }
@@ -91,11 +94,8 @@
 <div id="wrap">
   <canvas id="game"></canvas>
   <div class="hud">
-    <div class="hbtns">
-      <button class="hbtn" id="countryChip" title="Your offices">&#127758;</button>
-      <button class="chip" id="payChip">Payroll</button>
-    </div>
-    <div id="cash">$0</div>
+    <button class="hbtn" id="countryChip" title="Your offices">&#127758;</button>
+    <button id="cash"><span class="cashcol"><span id="cashNum">$0</span><small id="payChip">&nbsp;</small></span></button>
     <div class="hbtns">
       <button class="hbtn" id="sndBtn">&#128266;</button>
     </div>
@@ -148,9 +148,9 @@ const VERTS = {
 };
 const VERTCOST = { it:350, hc:1150 };
 const COUNTRIES = [
-  { name:'India',  mul:1,  floorA:'#FFF1DC', floorB:'#FFE6C2', wall:'#4EC0CE', accent:'#F2762E', sky:'rgba(190,240,255,0.7)', rug:'rgba(255,252,244,0.5)', passive:2,   moveCost:2400  },
-  { name:'Dubai',  mul:2.4,  floorA:'#FFF6D9', floorB:'#FFEBB4', wall:'#F2A63B', accent:'#E0761B', sky:'rgba(255,225,160,0.7)', rug:'rgba(255,250,232,0.5)', passive:9,   moveCost:25000 },
-  { name:'USA',    mul:6, floorA:'#EFEAFB', floorB:'#E2D9F6', wall:'#7A6BE0', accent:'#4B3BC4', sky:'rgba(180,200,255,0.7)', rug:'rgba(252,253,255,0.55)', passive:26,  moveCost:Infinity }
+  { name:'India',  flag:'\u{1F1EE}\u{1F1F3}', mul:1,  floorA:'#FFF1DC', floorB:'#FFE6C2', wall:'#4EC0CE', accent:'#F2762E', sky:'rgba(190,240,255,0.7)', rug:'rgba(255,252,244,0.5)', passive:2,   moveCost:2400  },
+  { name:'Dubai',  flag:'\u{1F1E6}\u{1F1EA}', mul:2.4,  floorA:'#FFF6D9', floorB:'#FFEBB4', wall:'#F2A63B', accent:'#E0761B', sky:'rgba(255,225,160,0.7)', rug:'rgba(255,250,232,0.5)', passive:9,   moveCost:25000 },
+  { name:'USA',    flag:'\u{1F1FA}\u{1F1F8}', mul:6, floorA:'#EFEAFB', floorB:'#E2D9F6', wall:'#7A6BE0', accent:'#4B3BC4', sky:'rgba(180,200,255,0.7)', rug:'rgba(252,253,255,0.55)', passive:26,  moveCost:Infinity }
 ];
 // req = placements needed before the upgrade appears at all (the genre reveals a few at a time)
 // sub = monthly software subscription per level, charged with payroll
@@ -209,7 +209,7 @@ const L = {
   pads:    { sourcer:{x:COL_X+90,y:ROW_Y[0]+150}, rec:{x:MAIN_X+60,y:ROW_Y[2]-40},
              am:{x:MAIN_X+70,y:ROW_Y[4]-70}, fin:{x:MAIN_R-60,y:ROW_Y[4]-70} },
   shred:   { x:COL_X+52,    y:ROW_Y[0]+16, w:70, h:62 },
-  exit:    { x:MAIN_R-152,  y:30,  w:152, h:66 }
+  exit:    { x:MAIN_R-104,  y:34,  w:104, h:58 }
 };
 const BENCH = { x:MAIN_X, y:ROW_Y[3], w:MAIN_W, h:80 };
 const FIN_POST = { x:MAIN_R - 78, y:ROW_Y[4] - 44 };   // open band beside the lobby, clear of the promo stand
@@ -262,7 +262,7 @@ let emp, clientT, printT, cashEverPicked, panelLatch, exitLatch, hintIT, hintHC;
 let padProg, rushOn, rushLeft, promoCd, shredA = 0, dt2 = 0.016, payFlash = 0, payLast = 0, gameOver = false;
 let rushBank = 0;  // promo-rush client spawns held back by a full lobby
 let boostLeft = 0, boostCd = 0;
-const BOOST_X = 2, BOOST_SECS = 20, BOOST_COOL = 40;
+const BOOST_X = 2, BOOST_SECS = 40, BOOST_COOL = 40;
 const boostCost = () => nice((90 + state.placed * 1.6) * mul());
 const timeScale = () => boostLeft > 0 ? BOOST_X : 1;
 let tourOn = false, tourStep = 0, tourT = 0;
@@ -380,8 +380,8 @@ const amCap = () => 2 + Math.floor(state.ups.staffcap/1.5);
 const boothCap = () => Math.min(6, 3 + state.ups.booth);
 let atBooth = false;
 let UI_SCALE = 1;
-const F = (w, s) => w + ' ' + Math.round(s * UI_SCALE) + 'px \'Baloo 2\'';
-const FT = s => '700 ' + Math.round(s * UI_SCALE) + 'px Fredoka';
+const F = (w, s) => w + ' ' + Math.round(s * UI_SCALE) + 'px Fredoka, sans-serif';
+const FT = s => '700 ' + Math.round(s * UI_SCALE) + 'px Fredoka, sans-serif';
 // candy-style outlined text: fat dark stroke under a bright fill
 function pop(txt, x, y, fill, stroke, lw) {
   ctx.lineJoin = 'round'; ctx.miterLimit = 2;
@@ -753,10 +753,13 @@ function addVertRow(box, k) {
     const cost = vertCost(k);
     const row = document.createElement('div'); row.className = 'row tb-verts';
     row.innerHTML = tile(VERTS[k].name[0], VERTS[k].color) + '<div class="info"><div class="nm" style="color:' + VERTS[k].dark + '">Unlock ' + VERTS[k].name + '</div><div class="ds">New clients at ' + fmt(VERTS[k].fee * mul()) + ' base fee per placement</div></div>';
-    const b = document.createElement('button'); b.className = 'buy'; b.style.background = VERTS[k].color;
-    b.textContent = fmt(cost); b.disabled = state.cash < cost;
+    const b = document.createElement('button'); b.className = 'buy';
+    const canBuy = state.cash >= cost;
+    b.style.background = canBuy ? VERTS[k].color : 'linear-gradient(#D6CCE2,#B9AAC8)';
+    b.style.boxShadow = canBuy ? '0 3px 0 ' + VERTS[k].dark : '0 3px 0 #9C8CB0';
+    b.textContent = fmt(cost); b.disabled = !canBuy;
     b.onclick = () => { if (state.cash>=cost) { state.cash-=cost; state.verts.push(k); sBuy(); toast(VERTS[k].name + ' unlocked!'); buildPanel(); saveGame(); } };
-    panelBtns.push({ el:b, cost });
+    panelBtns.push({ el:b, cost, vert:k });
     row.appendChild(b); box.appendChild(row);
 }
 function showOffices() {
@@ -783,7 +786,7 @@ function showOffices() {
 }
 $('countryChip').style.pointerEvents = 'auto';
 $('countryChip').style.cursor = 'pointer';
-$('payChip').onclick = () => {
+$('cash').onclick = () => {
   if (modalOpen) return;
   showModal('Payroll & software',
     payrollOn()
@@ -821,6 +824,7 @@ function spendConfirmCountry() {
       } } ]);
 }
 function applyHud() {
+  $('countryChip').textContent = COUNTRIES[state.country].flag || '\u{1F30E}';
   $('countryChip').title = COUNTRIES[state.country].name + ' office \u00b7 tap to travel';
   $('sndBtn').textContent = state.mute ? '\u{1F507}' : '\u{1F50A}';
 }
@@ -1073,8 +1077,8 @@ function update(dt) {
     for (const cl of clients) {
       if (cl.st !== 'wait' || cl.need <= 0) continue;
       if (dist(player.x, player.y, cl.x, cl.y) > 96) continue;
-      const inFlight = candidates.filter(c => (c.st==='escort'||c.st==='fetched'||c.st==='selfgo') && c.target===cl).length;
-      if (cl.need - inFlight <= 0) continue;
+      // no inFlight check here on purpose: staff reservations must never block the
+      // player, who is the fastest deliverer. Their escorts rehome if the order fills.
       let f = pf().find(c => c.done && c.vert === cl.vert), off = false;
       if (!f && cl.patience < cl.maxP*0.55) { f = pf().find(c => c.done); off = true; }
       if (!f) continue;
@@ -1298,14 +1302,15 @@ function update(dt) {
   });
   bills = bills.filter(b => !b.dead);
 
+  const playerAtBoard = dist(player.x, player.y, pc.x+55, pc.y) < 110 && player.carrying.length < carryCap();
   emp.sourcers.forEach(s => {
     const ox = (s.o - (emp.sourcers.length-1)/2) * 26;
-    if (s.st === 'idle') { if (printerStack.length) s.st = 'toP'; }
+    if (s.st === 'idle') { if (printerStack.length && !playerAtBoard) s.st = 'toP'; }
     else if (s.st === 'toP') {
       const tx = pc.x+55+ox, ty = pc.y+34;
       const d = dist(s.x,s.y,tx,ty);
       if (d < 14) {
-        while (s.carrying.length < sourcerCarry() && printerStack.length) s.carrying.push(printerStack.pop());
+        if (!playerAtBoard) while (s.carrying.length < sourcerCarry() && printerStack.length) s.carrying.push(printerStack.pop());
         s.st = s.carrying.length ? 'toD' : 'idle';
       } else { const sv = staffSpeed(); s.x += (tx-s.x)/d*sv*dt; s.y += (ty-s.y)/d*sv*dt; }
     } else if (s.st === 'toD') {
@@ -1327,7 +1332,8 @@ function update(dt) {
       if (moveToward(r, px2, py2, staffSpeed(), dt, 6)) { r.st = 'work'; r.mv = false; }
     } else if (r.st === 'work') {
       r.mv = false;
-      if (!roomBusy && every('recfetch' + r.o, 0.6)) {
+      const playerAtZone = dist(player.x, player.y, zc.x, zc.y) < 120 && pf().length < followCap();
+      if (!roomBusy && !playerAtZone && every('recfetch' + r.o, 0.6)) {
         const w = candidates.find(c => c.st === 'wait' && !c.claim);
         if (w) { w.claim = 'rec' + r.o; r.target = w; r.st = 'fetch'; }
       }
@@ -1723,11 +1729,11 @@ function render() {
     rr(e.x, e.y, e.w, e.h, 14); ctx.stroke();
     ctx.fillStyle = afford ? '#5C4406' : '#F5EFE2';
     ctx.textAlign = 'center';
-    const eLbl = 'Move to ' + COUNTRIES[state.country+1].name;
-    fitFont(eLbl, 600, 15, e.w - 14);
-    ctx.fillText(eLbl, e.x+e.w/2, e.y+27);
-    fitFont(fmt(mc), 700, 16, e.w - 14);
-    ctx.fillText(fmt(mc), e.x+e.w/2, e.y+49);
+    const eLbl = '\u2708 ' + COUNTRIES[state.country+1].name;
+    fitFont(eLbl, 600, 13, e.w - 12);
+    ctx.fillText(eLbl, e.x+e.w/2, e.y+24);
+    fitFont(fmt(mc), 700, 15, e.w - 12);
+    ctx.fillText(fmt(mc), e.x+e.w/2, e.y+44);
     if (afford) {
       const pl = 1 + Math.sin(performance.now()/300)*0.5;
       ctx.strokeStyle = 'rgba(232,185,60,' + (0.35*pl) + ')'; ctx.lineWidth = 5;
@@ -2152,30 +2158,32 @@ function loop(t) {
   lastT = t;
   update(dt * timeScale());
   render();
-  const cEl = $('cash'), cTxt = fmt(state.cash);
+  const cEl = $('cash'), cNum = $('cashNum'), cTxt = fmt(state.cash);
   const cCol = state.cash < 0 ? '#8A2418' : '';
   if (cEl._col !== cCol) { cEl._col = cCol; cEl.style.color = cCol; }
-  if (cEl.textContent !== cTxt) {
-    cEl.textContent = cTxt;
+  if (cNum.textContent !== cTxt) {
+    cNum.textContent = cTxt;
     cEl.classList.add('pop');
     clearTimeout(cEl._p); cEl._p = setTimeout(() => cEl.classList.remove('pop'), 130);
   }
   const pr = passiveRate();
   const pc = $('payChip');
-  if (!payrollOn()) pc.style.display = 'none';
-  else {
-    const due = monthlyDue(), t2 = Math.ceil(state.payT);
-    const ph = '\u{1F4B8} ' + fmt(due) + '  ' + t2 + 's';
-    const pbg = state.cash < due ? 'rgba(180,58,42,0.82)' : 'rgba(59,50,39,0.55)';
-    pc.style.display = 'block';
-    if (pc._h !== ph) { pc._h = ph; pc.innerHTML = ph; }
-    if (pc._bg !== pbg) { pc._bg = pbg; pc.style.background = pbg; }
-  }
+  const ph = payrollOn() ? '\u{1F4B8} ' + fmt(monthlyDue()) + ' in ' + Math.ceil(state.payT) + 's' : '\u00a0';
+  if (pc._h !== ph) { pc._h = ph; pc.innerHTML = ph; }
+  const pcol = (payrollOn() && state.cash < monthlyDue()) ? '#B4231A' : '#8A5A06';
+  if (pc._c !== pcol) { pc._c = pcol; pc.style.color = pcol; }
   const ob = $('objective');
   if (state.tut < TUT.length && !tourOn) { ob.style.display = 'block'; ob.textContent = TUT[state.tut].txt; }
   else ob.style.display = 'none';
   if (panelOpen && every('pnl', 0.5)) {
-    panelBtns.forEach(x => { x.el.disabled = state.cash < x.cost; });
+    panelBtns.forEach(x => {
+      const can = state.cash >= x.cost;
+      x.el.disabled = !can;
+      if (x.vert) {
+        x.el.style.background = can ? VERTS[x.vert].color : 'linear-gradient(#D6CCE2,#B9AAC8)';
+        x.el.style.boxShadow = can ? '0 3px 0 ' + VERTS[x.vert].dark : '0 3px 0 #9C8CB0';
+      }
+    });
     $('panelCash').textContent = fmt(state.cash);
   }
   saveT += dt;

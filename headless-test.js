@@ -647,6 +647,21 @@ setTimeout(async () => {
     log.push(['post-interview rejection', '0% under ' + fmt(REJECT_FLOOR()) + ', ' + (rate*100).toFixed(0) + '% above']);
     state = freshState(); resetFloor(); modalOpen = false;
 
+    // regression: staff reservations must never block the player's own hand-off
+    state = freshState(); resetFloor(); state.tut = TUT.length; gameOver = false; modalOpen = false;
+    state.payOn = false; clientT = 9999; candidates.length = 0; clients.length = 0;
+    const pcl = { x:clientSlots[0].x, y:clientSlots[0].y, vert:'bc', need:1, slot:0, vip:false,
+                  patience:20, maxP:24, st:'wait', bob:0, amClaim:0 };
+    clients.push(pcl);
+    candidates.push({ x:300, y:700, vert:'bc', st:'escort', target:pcl, amIdx:0, done:true, owner:null, idx:0, bob:1 });
+    candidates.push({ x:pcl.x, y:pcl.y-40, vert:'bc', st:'follow', owner:'p', done:true, idx:0, bob:2 });
+    at(pcl.x, pcl.y - 30);
+    const pPlaced = state.placed;
+    tick(20);
+    if (state.placed <= pPlaced) throw new Error('player could not deliver while an AM had the order reserved');
+    log.push(['player priority', 'hand-off beats an account manager reservation']);
+    state = freshState(); resetFloor(); modalOpen = false;
+
     // the turbo pad charges money and speeds the office up for a while
     state = freshState(); resetFloor(); state.tut = TUT.length; gameOver = false; modalOpen = false;
     state.payOn = false; state.placed = 10; clientT = 9999; clients.length = 0; candidates.length = 0;
