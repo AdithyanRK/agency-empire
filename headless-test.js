@@ -684,7 +684,8 @@ setTimeout(async () => {
     const dCost = buildCost('desk');
     // broke: screening cannot run and the pad will not build
     state.cash = 0;
-    deskQueue.push('bc'); clients.length = 0; clientT = 9999;
+    for (let i = 0; i < 6; i++) deskQueue.push('bc');   // one resume can be rejected at screening; six cannot all be
+    clients.length = 0; clientT = 9999;
     at(rc(L.desk).x, rc(L.desk).y); tick(100);
     if (built('desk')) throw new Error('built the desk with no money');
     if (candidates.length) throw new Error('screening ran without a screening desk');
@@ -694,7 +695,7 @@ setTimeout(async () => {
     tick(40);
     if (!built('desk')) throw new Error('standing on the pad did not build the desk');
     if (cashBeforeBuild - state.cash < dCost - 1) throw new Error('building did not charge: ' + state.cash);
-    tick(80);
+    tick(200);   // screening takes ~3.8s at base rate; give it room so this is not timing-marginal
     if (!candidates.length) throw new Error('screening still dead after building the desk');
     log.push(['build-out', 'desk ' + fmt(dCost) + ', screening starts only once built']);
     // a pad you cannot afford does nothing
