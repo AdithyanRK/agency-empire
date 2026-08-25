@@ -602,6 +602,20 @@ setTimeout(async () => {
     log.push(['drift valve per-candidate', drifted + ' candidates seated in 2s']);
     state = freshState(); resetFloor(); modalOpen = false;
 
+    // regression: travelling between owned offices via the country chip must work
+    state = freshState(); resetFloor(); state.tut = TUT.length; modalOpen = false; gameOver = false;
+    state.placed = 20; state.offices[0] = snapshotOffice();
+    state.country = 1; applyOffice(null); resetFloor(); applyHud();
+    if (ownedOffices().length < 2) throw new Error('two offices should be owned');
+    showOffices();
+    const offRows = els['mBody'].children;
+    const goBtn = offRows.map(r => r.children.find(ch => ch.textContent === 'Go')).find(Boolean);
+    if (!goBtn) throw new Error('no Go button for the other office');
+    goBtn.onclick();
+    if (state.country !== 0) throw new Error('travel back to India failed: country=' + state.country);
+    log.push(['office travel', 'Dubai -> India ok']);
+    state = freshState(); resetFloor(); modalOpen = false;
+
     // the Manager desk offers a working "Start over" that wipes progress
     state = freshState(); resetFloor(); state.tut = TUT.length; modalOpen = false; gameOver = false;
     state.cash = 9000; state.placed = 42; state.hires = { sourcer:2, rec:1, am:1, fin:1 }; syncEmp();

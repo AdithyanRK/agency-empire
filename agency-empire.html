@@ -149,6 +149,8 @@ const UPCATS = [
   ['Marketing', ['ads','rep','patience','vipnet']],
   ['Office', ['booth','zone','ready','slots']]
 ];
+const PEOPLE_SC = 1.5;   // one dial for how chunky everyone on the floor reads
+const CAND_SC = 0.82 * PEOPLE_SC;
 const STAFF_UNIFORM = '#4A5160';
 const ROLE_TAG = { sourcer:'S', rec:'R', am:'A', fin:'F' };
 const SALARY = { sourcer:34, rec:46, am:58, fin:40 };
@@ -220,6 +222,7 @@ let emp, clientT, printT, cashEverPicked, panelLatch, exitLatch, hintIT, hintHC;
 let padProg, rushOn, rushLeft, promoCd, shredA = 0, dt2 = 0.016, payFlash = 0, payLast = 0, gameOver = false;
 let rushBank = 0;  // promo-rush client spawns held back by a full lobby
 let coinFx = [];
+const candSorted = [];   // reused scratch buffer for depth sorting
 let chipPos = null, chipKey = '';
 function cashChipWorld() {
   const key = innerWidth + 'x' + innerHeight;
@@ -576,23 +579,24 @@ function addVertRow(box, k) {
 }
 function showOffices() {
   const owned = ownedOffices();
-  let body = '';
+  showModal('Your offices', '', [ { label:'Close', pri:true } ]);
+  const mb = $('mBody');
+  // built as real nodes: mb.children is an HTMLCollection in a browser, which has no forEach
   owned.forEach(i => {
     const c = COUNTRIES[i];
-    body += '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:7px 0;padding:10px 12px;background:#FFF;border:1px solid var(--line);border-radius:14px;text-align:left">' +
-      '<div><div style="font-weight:600;color:var(--ink)">' + c.name + ' office</div>' +
-      '<div style="font-size:12px;color:var(--ink2)">' + (i === state.country ? 'You are here' : 'Earning ' + fmt(c.passive) + '/min') + '</div></div>' +
-      (i === state.country ? '' : '<button class="mbtn pri" style="flex:none;padding:9px 16px" data-go="' + i + '">Go</button>') +
-      '</div>';
-  });
-  showModal('Your offices', body, [ { label:'Close', pri:true } ]);
-  const mb = $('mBody');
-  (mb.children || []).forEach(row => {
-    (row.children || []).forEach(el => {
-      if (el.dataset && el.dataset.go !== undefined && el.dataset.go !== '') {
-        el.onclick = () => { $('modal').classList.remove('show'); modalOpen = false; travelTo(+el.dataset.go); };
-      }
-    });
+    const here = i === state.country;
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:10px;margin:7px 0;padding:10px 12px;background:#FFF;border:1px solid var(--line);border-radius:14px;text-align:left';
+    row.innerHTML = '<div><div style="font-weight:600;color:var(--ink)">' + c.name + ' office</div>' +
+      '<div style="font-size:12px;color:var(--ink2)">' + (here ? 'You are here' : 'Earning ' + fmt(c.passive) + '/min') + '</div></div>';
+    if (!here) {
+      const b = document.createElement('button');
+      b.className = 'mbtn pri'; b.style.cssText = 'flex:none;padding:9px 16px';
+      b.textContent = 'Go';
+      b.onclick = () => { $('modal').classList.remove('show'); modalOpen = false; travelTo(i); };
+      row.appendChild(b);
+    }
+    mb.appendChild(row);
   });
 }
 $('countryChip').style.pointerEvents = 'auto';
@@ -1327,27 +1331,28 @@ function shadow(x, y, w) {
   ctx.beginPath(); ctx.ellipse(x, y, w, w*0.42, 0, 0, Math.PI*2); ctx.fill();
 }
 function drawStaff(u, tag) {
+  const s = PEOPLE_SC;
   const bob = u.mv || (u.st && u.st !== 'idle') ? Math.sin(performance.now()/70 + u.o)*2.4 : Math.sin(performance.now()/420 + u.o)*1.1;
-  shadow(u.x, u.y+16, 14);
+  shadow(u.x, u.y+16*s, 14*s);
   const by = u.y + bob;
-  const sg = ctx.createLinearGradient(u.x, by-12, u.x, by+18);
+  const sg = ctx.createLinearGradient(u.x, by-12*s, u.x, by+18*s);
   sg.addColorStop(0, STAFF_UNIFORM); sg.addColorStop(1, shade(STAFF_UNIFORM, 0.78));
   ctx.fillStyle = sg;
-  rr(u.x-11, by-11, 22, 28, 10); ctx.fill();
+  rr(u.x-11*s, by-11*s, 22*s, 28*s, 10*s); ctx.fill();
   ctx.fillStyle = '#EDE7DA';
-  ctx.beginPath(); ctx.moveTo(u.x-7, by-11); ctx.lineTo(u.x, by-2); ctx.lineTo(u.x+7, by-11); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(u.x-7*s, by-11*s); ctx.lineTo(u.x, by-2*s); ctx.lineTo(u.x+7*s, by-11*s); ctx.closePath(); ctx.fill();
   ctx.fillStyle = '#F2C9A0';
-  ctx.beginPath(); ctx.arc(u.x, by-21, 11, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(u.x, by-21*s, 11*s, 0, Math.PI*2); ctx.fill();
   ctx.fillStyle = 'rgba(255,255,255,0.35)';
-  ctx.beginPath(); ctx.arc(u.x-4, by-25, 3.2, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(u.x-4*s, by-25*s, 3.2*s, 0, Math.PI*2); ctx.fill();
   ctx.fillStyle = '#33261A';
-  ctx.beginPath(); ctx.arc(u.x, by-24, 10.5, Math.PI, 0); ctx.fill();
+  ctx.beginPath(); ctx.arc(u.x, by-24*s, 10.5*s, Math.PI, 0); ctx.fill();
   ctx.fillStyle = '#FFFFFF';
-  ctx.beginPath(); ctx.arc(u.x+11, by+4, 7.5, 0, Math.PI*2); ctx.fill();
-  ctx.strokeStyle = STAFF_UNIFORM; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.arc(u.x+11, by+4, 7.5, 0, Math.PI*2); ctx.stroke();
-  ctx.fillStyle = STAFF_UNIFORM; ctx.font = F(700, 10); ctx.textAlign = 'center';
-  ctx.fillText(tag, u.x+11, by+7.5);
+  ctx.beginPath(); ctx.arc(u.x+11*s, by+4*s, 7.5*s, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = STAFF_UNIFORM; ctx.lineWidth = 1.5*s;
+  ctx.beginPath(); ctx.arc(u.x+11*s, by+4*s, 7.5*s, 0, Math.PI*2); ctx.stroke();
+  ctx.fillStyle = STAFF_UNIFORM; ctx.font = F(700, Math.round(10*s)); ctx.textAlign = 'center';
+  ctx.fillText(tag, u.x+11*s, by+7.5*s);
 }
 function drawPerson(x, y, sc, shirt, opts) {
   opts = opts || {};
@@ -1656,10 +1661,38 @@ function render() {
 
   bills.forEach(drawBill);
 
-  candidates.forEach(c => {
-    if (!c.done) ctx.globalAlpha = 0.85;
-    drawPerson(c.x, c.y, 0.82, VERTS[c.vert].color, { seed:c.bob, moving:c.st==='follow'||c.st==='joining'||c.st==='expire' });
+  // bigger sprites overlap in the queues, so draw back-to-front
+  candSorted.length = 0;
+  for (let i = 0; i < candidates.length; i++) candSorted.push(candidates[i]);
+  candSorted.sort((a, b) => a.y - b.y);
+  candSorted.forEach(c => {
+    if (!c.done) ctx.globalAlpha = 0.9;
+    drawPerson(c.x, c.y, CAND_SC, VERTS[c.vert].color, { seed:c.bob, moving:c.st==='follow'||c.st==='joining'||c.st==='expire',
+      tie: c.done ? VERTS[c.vert].dark : null });
     ctx.globalAlpha = 1;
+
+    // screened candidates still carry their paperwork; interviewed ones wear a green tick
+    const bdy = c.y - 30*CAND_SC, bdx = c.x - 15*CAND_SC;
+    if (c.done) {
+      ctx.fillStyle = '#2F8F4E';
+      ctx.beginPath(); ctx.arc(bdx, bdy, 9*CAND_SC, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 2.6*CAND_SC; ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(bdx - 4*CAND_SC, bdy);
+      ctx.lineTo(bdx - 1.2*CAND_SC, bdy + 3.4*CAND_SC);
+      ctx.lineTo(bdx + 4.2*CAND_SC, bdy - 3.4*CAND_SC);
+      ctx.stroke(); ctx.lineCap = 'butt';
+    } else {
+      const pw = 13*CAND_SC, ph = 17*CAND_SC;
+      ctx.fillStyle = '#FFFDF4';
+      rr(bdx - pw/2, bdy - ph/2, pw, ph, 2.5*CAND_SC); ctx.fill();
+      ctx.strokeStyle = 'rgba(59,50,39,0.45)'; ctx.lineWidth = 1.4*CAND_SC;
+      rr(bdx - pw/2, bdy - ph/2, pw, ph, 2.5*CAND_SC); ctx.stroke();
+      ctx.fillStyle = VERTS[c.vert].color;
+      rr(bdx - pw/2, bdy - ph/2, pw, 4.5*CAND_SC, 2*CAND_SC); ctx.fill();
+      ctx.fillStyle = 'rgba(59,50,39,0.35)';
+      for (let i = 0; i < 2; i++) rr(bdx - pw/2 + 2.5*CAND_SC, bdy - 1 + i*4*CAND_SC, pw - 5*CAND_SC, 1.4*CAND_SC, 1); ctx.fill();
+    }
 
     if (c.st === 'ready' && (c.readyT||0) > 20) {
       const wx = c.x+14, wy = c.y-36;
@@ -1672,7 +1705,7 @@ function render() {
   });
 
   clients.forEach(cl => {
-    drawPerson(cl.x, cl.y, 1, cl.vip ? '#C9A227' : '#23242C', { seed:cl.bob, moving:cl.st!=='wait', tie:cl.vip ? '#7A5C06' : VERTS[cl.vert].color, case:true, hair:'#3A3A3A' });
+    drawPerson(cl.x, cl.y, PEOPLE_SC, cl.vip ? '#C9A227' : '#23242C', { seed:cl.bob, moving:cl.st!=='wait', tie:cl.vip ? '#7A5C06' : VERTS[cl.vert].color, case:true, hair:'#3A3A3A' });
     if (cl.vip) {
       ctx.fillStyle = '#E8C23C';
       const hy = cl.y - 36 + (cl.st!=='wait' ? Math.sin(performance.now()/70+cl.bob)*2.4 : Math.sin(performance.now()/420+cl.bob)*1.1);
@@ -1736,7 +1769,7 @@ function render() {
   pg.addColorStop(0, 'rgba(255,201,60,0.45)'); pg.addColorStop(1, 'rgba(255,201,60,0)');
   ctx.fillStyle = pg;
   ctx.beginPath(); ctx.ellipse(player.x, player.y+16, 34, 16, 0, 0, Math.PI*2); ctx.fill();
-  popWrap(player.x, player.y+18, player.pop || 0, () => drawPerson(player.x, player.y, 1.08, '#F5F0E4', { seed:1, moving:player.moving, tie:'#C9553C', hair:'#33261A' }));
+  popWrap(player.x, player.y+18, player.pop || 0, () => drawPerson(player.x, player.y, 1.08 * PEOPLE_SC, '#F5F0E4', { seed:1, moving:player.moving, tie:'#C9553C', hair:'#33261A' }));
   player.carrying.forEach((v,i) =>
     drawResume(player.x + Math.sin(performance.now()/150+i*1.1)*(1.5+i*0.8), player.y-46-i*7, Math.sin(performance.now()/150+i*1.1)*0.1, v));
 
