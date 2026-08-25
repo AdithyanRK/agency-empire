@@ -166,7 +166,7 @@
 <script>
 'use strict';
 const VW = 900, VH = 1500;      // the office floor is now bigger than one screen
-const VIEW_W = 620;            // how much of it fits across the screen width
+const VIEW_W = 900;            // the whole floor fits across the screen - no panning
 const BG_M = 260;              // floor baked past the walls so edges never show blank
 const cv = document.getElementById('game');
 let ctx = cv.getContext('2d');
@@ -2258,7 +2258,7 @@ function render() {
   }
   worldTransform();
   screenTransform();
-  ctx.font = F(500, 12); ctx.textAlign = 'right';
+  ctx.font = '500 12px Fredoka, sans-serif'; ctx.textAlign = 'right';   // screen-space HUD: already in CSS px, must not scale with the world zoom
   ctx.fillStyle = 'rgba(80,55,110,0.55)';
   ctx.fillText('Placed ' + state.placed + '   Rejected ' + (state.rejected||0) + '   Lost ' + state.lost, cssW-12, cssH-12);
   worldTransform();

@@ -252,3 +252,18 @@ run — the queue drained from 6 to 4 and both resumes were rejected — so the
 assertion was testing an RNG outcome, not the behaviour it named. It now asserts
 that screening consumed input at all, which is what "screening starts only once
 the desk is built" actually means. 12 consecutive green runs.
+
+## Round 16 — Zoomed out to the whole floor (2026-08-25)
+
+`VIEW_W` 620 -> 900. The camera showed 620 of a 900-wide floor and panned to
+cover the rest; it now fits the entire office on screen at once, so every station
+is visible together and the camera never moves. `clampCam` already centred the
+world when the visible area exceeded it, so no other change was needed.
+
+That exposed a latent bug rather than causing one. `UI_SCALE` (which grows as the
+world shrinks, to keep in-world labels legible) was being applied to the
+bottom-right Placed/Rejected/Lost line — but that line is drawn in *screen* space
+after `screenTransform()`, already in CSS pixels. It had always been slightly too
+big; at the wider zoom it grew to 22px and dominated the screen. It now uses a
+literal CSS-pixel font like the other screen-space HUD elements do. In-world
+labels still scale, which is what `UI_SCALE` is for.
