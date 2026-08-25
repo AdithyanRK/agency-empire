@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="Agency Empire" />
   <meta name="theme-color" content="#241F17" />
 <title>Agency Empire</title>
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Titan+One&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --ink:#3A2358; --ink2:#7A5E9B; --paper:#FFF6FB; --card:#FFFFFF;
@@ -18,27 +18,28 @@
     --grape:#5B2A86; --grape-d:#3A1A5C;
   }
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html,body { height:100%; overflow:hidden; background:#2B1440; font-family:'Baloo 2',system-ui,sans-serif; }
+  html,body { height:100%; overflow:hidden; background:#2B1440; font-family:'Fredoka',system-ui,sans-serif; }
   body { display:flex; align-items:center; justify-content:center; }
   #wrap { position:relative; }
   canvas { display:block; touch-action:none; }
   .hud { position:absolute; top:0; left:0; right:0; padding:calc(10px + env(safe-area-inset-top, 0px)) calc(12px + env(safe-area-inset-right, 0px)) 10px calc(12px + env(safe-area-inset-left, 0px)); display:flex; align-items:flex-start; justify-content:space-between; pointer-events:none; z-index:5; }
   .chip { background:linear-gradient(#7B45A8,var(--grape)); color:#FFF3FF; border:2px solid rgba(255,255,255,0.35); border-radius:18px; padding:8px 14px; font-size:14px; font-weight:700; line-height:1.2; box-shadow:0 4px 0 var(--grape-d), 0 6px 14px rgba(0,0,0,0.28); }
   .chip small { display:block; font-size:11px; opacity:0.8; font-weight:500; }
-  #cash { display:flex; align-items:center; gap:8px; font-family:'Titan One',cursive; font-size:23px; letter-spacing:0.4px; color:var(--gold-ink); background:linear-gradient(#FFF3C4,#FFC93C); padding:7px 18px 7px 12px; border-radius:24px; border:2.5px solid #FFFDF0; box-shadow:0 4px 0 var(--gold-d), 0 7px 16px rgba(0,0,0,0.3); transition:transform 0.12s; }
+  #cash { display:flex; align-items:center; gap:8px; font-weight:700; font-size:23px; letter-spacing:0.4px; color:var(--gold-ink); background:linear-gradient(#FFF3C4,#FFC93C); padding:7px 18px 7px 12px; border-radius:24px; border:2.5px solid #FFFDF0; box-shadow:0 4px 0 var(--gold-d), 0 7px 16px rgba(0,0,0,0.3); transition:transform 0.12s; }
   #cash.pop { transform:scale(1.08); }
   #cash::before { content:''; width:22px; height:22px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #FFE9A8, #E8B93C 60%, #C9922A); box-shadow:inset 0 -2px 0 rgba(0,0,0,0.15); }
   .hbtns { display:flex; gap:8px; }
   .hbtn { pointer-events:auto; width:42px; height:42px; border-radius:50%; border:none; background:var(--shade); backdrop-filter:blur(3px); color:#FFF6E4; font-size:17px; font-weight:600; cursor:pointer; font-family:inherit; box-shadow:0 3px 0 rgba(0,0,0,0.22); }
   .hbtn:active { transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,0.22); }
-  #payChip { position:absolute; left:12px; top:78px; white-space:nowrap; font-size:12px; padding:5px 10px;
-    border-radius:13px; box-shadow:0 3px 0 var(--grape-d); }
+  #payChip { pointer-events:auto; cursor:pointer; white-space:nowrap; font-size:12px; padding:6px 11px;
+    border-radius:14px; box-shadow:0 3px 0 var(--grape-d); align-self:center; font-family:inherit; }
   #payChip small { display:none; }
-  #objective { font-family:'Titan One',cursive; letter-spacing:0.2px; font-size:13px; max-width:74%; white-space:normal; line-height:1.25; position:absolute; top:84px; left:50%; transform:translateX(-50%); background:var(--paper); color:var(--ink); padding:9px 16px; border-radius:16px; font-weight:600; z-index:5; text-align:center; pointer-events:none; box-shadow:0 4px 0 rgba(59,50,39,0.18), 0 6px 14px rgba(0,0,0,0.2); }
+  #objective { letter-spacing:0.2px; font-size:13px; max-width:74%; white-space:normal; line-height:1.25; position:absolute; top:84px; left:50%; transform:translateX(-50%); background:var(--paper); color:var(--ink); padding:9px 16px; border-radius:16px; font-weight:600; z-index:5; text-align:center; pointer-events:none; box-shadow:0 4px 0 rgba(59,50,39,0.18), 0 6px 14px rgba(0,0,0,0.2); }
   #toast { position:absolute; bottom:calc(26px + env(safe-area-inset-bottom, 0px)); left:50%; transform:translateX(-50%); background:var(--shade); backdrop-filter:blur(3px); color:#FFF6E4; padding:11px 20px; border-radius:16px; font-size:14px; font-weight:500; z-index:8; pointer-events:none; opacity:0; transition:opacity 0.3s, transform 0.3s; box-shadow:0 4px 0 rgba(0,0,0,0.2); }
   .ov { position:absolute; inset:0; background:rgba(20,16,10,0.5); z-index:10; display:none; align-items:flex-end; justify-content:center; }
   .ov.show { display:flex; }
-  .card { background:var(--paper); width:100%; max-height:82%; border-radius:26px 26px 0 0; padding:10px 14px 24px; overflow-y:auto; box-shadow:0 -8px 30px rgba(0,0,0,0.3); }
+  .grab { width:46px; height:5px; border-radius:3px; background:#D8C6E8; margin:2px auto 8px; }
+  .card { background:var(--paper); touch-action:none; width:100%; max-height:82%; border-radius:26px 26px 0 0; padding:10px 14px 24px; overflow-y:auto; box-shadow:0 -8px 30px rgba(0,0,0,0.3); }
   .handle { width:44px; height:5px; border-radius:3px; background:#D8CCB2; margin:2px auto 10px; }
   .phead { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
   .phead h2 { font-size:19px; color:var(--ink); }
@@ -77,12 +78,12 @@
     background:radial-gradient(circle at 50% 34%, #7B45A8, #2B1440 74%); padding:24px; text-align:center; }
   #splash.gone { display:none; }
   .spcard { width:100%; max-width:340px; display:flex; flex-direction:column; gap:11px; }
-  .sptitle { font-family:'Titan One',cursive; font-size:40px; line-height:0.98; color:#FFD23F; letter-spacing:1px;
+  .sptitle { font-weight:700; font-size:40px; line-height:0.98; color:#FFD23F; letter-spacing:1px;
     text-shadow:0 4px 0 #B4700D, 0 8px 18px rgba(0,0,0,0.45); margin-bottom:2px; }
   .sptitle span { display:block; color:#FFF3FF; text-shadow:0 4px 0 #6A2FA0, 0 8px 18px rgba(0,0,0,0.45); }
   .spsub { color:#E8D6F6; font-size:15px; font-weight:600; margin-bottom:14px; }
   .spbtn { padding:15px; font-size:16px; }
-  #spPlay { font-family:'Titan One',cursive; font-size:20px; padding:17px; letter-spacing:0.5px; }
+  #spPlay { font-weight:700; font-size:20px; padding:17px; letter-spacing:0.5px; }
   @media (prefers-reduced-motion: reduce) { #cash, #toast, .buy, .mbtn, .closeb, .hbtn { transition:none; } }
 </style>
 </head>
@@ -90,8 +91,10 @@
 <div id="wrap">
   <canvas id="game"></canvas>
   <div class="hud">
-    <div class="chip" id="countryChip">India office<small id="passiveTxt"></small></div>
-    <div class="chip" id="payChip">Payroll</div>
+    <div class="hbtns">
+      <button class="hbtn" id="countryChip" title="Your offices">&#127758;</button>
+      <button class="chip" id="payChip">Payroll</button>
+    </div>
     <div id="cash">$0</div>
     <div class="hbtns">
       <button class="hbtn" id="sndBtn">&#128266;</button>
@@ -111,6 +114,7 @@
   </div>
   <div class="ov" id="panel">
     <div class="card t-team" id="panelCard">
+      <div class="grab"></div>
       <div class="handle"></div>
       <div class="phead"><h2>Manager desk</h2><div class="pcash" id="panelCash">$0</div></div>
       <div class="tabs">
@@ -119,7 +123,7 @@
         <button class="tab" data-tab="verts" id="tabVerts">Industries</button>
       </div>
       <div id="panelRows"></div>
-      <button class="closeb" id="panelClose">Back to the floor</button>
+      <button class="closeb" id="panelClose">Close</button>
     </div>
   </div>
   <div class="ov center" id="modal">
@@ -201,6 +205,7 @@ const L = {
   door:    { x:COL_X,       y:ROW_Y[4], w:96,  h:142 },
   mgr:     { x:COL_X,       y:ROW_Y[2], w:COL_W, h:106 },
   banner:  { x:COL_X+34,    y:ROW_Y[3], w:108, h:84 },
+  turbo:   { x:COL_X+34,    y:ROW_Y[3]+134, w:108, h:84 },
   pads:    { sourcer:{x:COL_X+90,y:ROW_Y[0]+150}, rec:{x:MAIN_X+60,y:ROW_Y[2]-40},
              am:{x:MAIN_X+70,y:ROW_Y[4]-70}, fin:{x:MAIN_R-60,y:ROW_Y[4]-70} },
   shred:   { x:COL_X+52,    y:ROW_Y[0]+16, w:70, h:62 },
@@ -256,6 +261,10 @@ let player, printerStack, deskQueue, screenT, candidates, clients, bills, parts,
 let emp, clientT, printT, cashEverPicked, panelLatch, exitLatch, hintIT, hintHC;
 let padProg, rushOn, rushLeft, promoCd, shredA = 0, dt2 = 0.016, payFlash = 0, payLast = 0, gameOver = false;
 let rushBank = 0;  // promo-rush client spawns held back by a full lobby
+let boostLeft = 0, boostCd = 0;
+const BOOST_X = 2, BOOST_SECS = 20, BOOST_COOL = 40;
+const boostCost = () => nice((90 + state.placed * 1.6) * mul());
+const timeScale = () => boostLeft > 0 ? BOOST_X : 1;
 let tourOn = false, tourStep = 0, tourT = 0;
 function tourStops() {
   return [
@@ -302,6 +311,19 @@ function drawTour() {
   ctx.restore();
 }
 let coinFx = [];
+let crossFx = [];   // little red X marks for rejected paperwork
+function drawCross(x, y, r, alpha) {
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = '#D93A2B';
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = r*0.34; ctx.lineCap = 'round';
+  const k = r*0.44;
+  ctx.beginPath();
+  ctx.moveTo(x-k, y-k); ctx.lineTo(x+k, y+k);
+  ctx.moveTo(x+k, y-k); ctx.lineTo(x-k, y+k);
+  ctx.stroke(); ctx.lineCap = 'butt';
+  ctx.globalAlpha = 1;
+}
 const candSorted = [];   // reused scratch buffer for depth sorting
 let chipPos = null, chipKey = '';
 function cashChipWorld() {
@@ -333,7 +355,7 @@ function resetFloor() {
   const freshRun = state && state.tut === 0 && state.placed === 0;
   clientT = 3.5; printT = freshRun ? 0 : 1.2; panelLatch = false; exitLatch = false;
   if (freshRun) for (let i = 0; i < 3; i++) printerStack.push(pickResumeVert());
-  padProg = {}; rushOn = false; rushLeft = 0; promoCd = 0; payFlash = 0; rushBank = 0;
+  padProg = {}; rushOn = false; rushLeft = 0; promoCd = 0; payFlash = 0; rushBank = 0; boostLeft = 0; boostCd = 0;
 }
 resetFloor();
 cashEverPicked = false; hintIT = false; hintHC = false;
@@ -359,7 +381,7 @@ const boothCap = () => Math.min(6, 3 + state.ups.booth);
 let atBooth = false;
 let UI_SCALE = 1;
 const F = (w, s) => w + ' ' + Math.round(s * UI_SCALE) + 'px \'Baloo 2\'';
-const FT = s => Math.round(s * UI_SCALE) + 'px \'Titan One\'';
+const FT = s => '700 ' + Math.round(s * UI_SCALE) + 'px Fredoka';
 // candy-style outlined text: fat dark stroke under a bright fill
 function pop(txt, x, y, fill, stroke, lw) {
   ctx.lineJoin = 'round'; ctx.miterLimit = 2;
@@ -400,7 +422,7 @@ const monthlyDue = () => payrollTotal() + subsTotal();
 const trading = () => state.tut >= TUT.length || state.placed >= 3;
 const START_CASH = 1000;
 const PAY_GATE = () => 5000 * mul();
-const INTERVIEW_REJECT = 0.07;                 // rare: most interviews still pass
+const INTERVIEW_REJECT = 0.025;                // rare: most interviews still pass
 const REJECT_FLOOR = () => 1000 * mul();       // below this the interview never rejects
 const RUIN = () => 10000 * mul();
 const payrollOn = () => !!state.payOn;
@@ -574,7 +596,31 @@ function openPanel() {
   panelOpen = true; panelOpened = true; buildPanel();
   $('panel').classList.add('show');
 }
-$('panelClose').onclick = () => { panelOpen = false; $('panel').classList.remove('show'); };
+function closePanel() { panelOpen = false; $('panel').classList.remove('show'); const c = $('panelCard'); if (c && c.style) c.style.transform = ''; }
+$('panelClose').onclick = closePanel;
+(function panelDrag() {
+  const card = $('panelCard');
+  if (!card || !card.addEventListener) return;
+  let sy = null, dy = 0;
+  card.addEventListener('pointerdown', e => {
+    // only start a dismiss drag from the top strip or from non-scrolled content
+    if (card.scrollTop > 4 && e.clientY - card.getBoundingClientRect().top > 48) return;
+    sy = e.clientY; dy = 0;
+  });
+  card.addEventListener('pointermove', e => {
+    if (sy === null) return;
+    dy = Math.max(0, e.clientY - sy);
+    if (dy > 4) { card.style.transform = 'translateY(' + dy + 'px)'; e.preventDefault(); }
+  });
+  const end = () => {
+    if (sy === null) return;
+    if (dy > 90) closePanel(); else card.style.transform = '';
+    sy = null; dy = 0;
+  };
+  card.addEventListener('pointerup', end);
+  card.addEventListener('pointercancel', end);
+  card.addEventListener('pointerleave', end);
+})();
 ['tabTeam','tabUps','tabVerts'].forEach(id => {
   const el = $(id);
   el.onclick = () => setTab(el.dataset ? el.dataset.tab : 'team');
@@ -632,7 +678,7 @@ function buildPanel() {
   rsb.style.background = 'linear-gradient(#C97A6A,#A8503E)';
   rsb.textContent = 'Reset';
   rsb.onclick = () => {
-    panelOpen = false; $('panel').classList.remove('show');
+    closePanel();
     showModal('Start over?',
       'This wipes your save and starts a brand new game. Your offices, staff, upgrades and cash are all lost.',
       [ { label:'Cancel' },
@@ -737,7 +783,17 @@ function showOffices() {
 }
 $('countryChip').style.pointerEvents = 'auto';
 $('countryChip').style.cursor = 'pointer';
-$('countryChip').onclick = () => { if (!modalOpen && ownedOffices().length > 1) showOffices(); };
+$('payChip').onclick = () => {
+  if (modalOpen) return;
+  showModal('Payroll & software',
+    payrollOn()
+      ? 'Every ' + MONTH + 's you pay your team and your software licences.<br><br>Wages <b>' + fmt(payrollTotal()) + '</b>' +
+        (subsTotal() ? '<br>Software <b>' + fmt(subsTotal()) + '</b>' : '') +
+        '<br>Total <b>' + fmt(monthlyDue()) + '</b> every ' + MONTH + 's.<br><br>Let staff go or cancel licences at the Manager desk to shrink it.'
+      : 'Once you have earned <b>' + fmt(PAY_GATE()) + '</b>, you start paying your team every ' + MONTH + 's. Nothing is charged before that.',
+    [ { label:'Got it', pri:true } ]);
+};
+$('countryChip').onclick = () => { if (!modalOpen) showOffices(); };
 $('sndBtn').onclick = () => { state.mute = !state.mute; $('sndBtn').textContent = state.mute ? '\u{1F507}' : '\u{1F50A}'; saveGame(); };
 const helpBtnEl = $('helpBtn');
 if (helpBtnEl) helpBtnEl.onclick = () => {
@@ -765,7 +821,7 @@ function spendConfirmCountry() {
       } } ]);
 }
 function applyHud() {
-  $('countryChip').childNodes[0].nodeValue = COUNTRIES[state.country].name + ' office';
+  $('countryChip').title = COUNTRIES[state.country].name + ' office \u00b7 tap to travel';
   $('sndBtn').textContent = state.mute ? '\u{1F507}' : '\u{1F50A}';
 }
 
@@ -979,7 +1035,7 @@ function update(dt) {
       const v = deskQueue.shift();
       if (Math.random() < rejectRate()) {
         state.rejected = (state.rejected||0) + 1;
-        if (every('rejmsg', 4)) floatTxt(dc.x+40, dc.y+18, 'Not a fit', '#B03A2E');
+        crossFx.push({ x:dc.x+40, y:dc.y+10, life:1.1 });
         beep(240, 0.07, 'square', 0.045);
         for (let i=0;i<5;i++) {
           const a = Math.random()*Math.PI*2, sp = 30+Math.random()*70;
@@ -1070,7 +1126,7 @@ function update(dt) {
         // interviews occasionally surface a mismatch - but never kick a struggling player
         if (state.cash >= REJECT_FLOOR() && Math.random() < INTERVIEW_REJECT) {
           state.rejected = (state.rejected||0) + 1;
-          floatTxt(c.x, c.y-52, 'Not a fit', '#B03A2E');
+          c.rej = true;                       // draws a red cross while they walk out
           beep(240, 0.08, 'square', 0.05);
           for (let i=0;i<5;i++) {
             const a = Math.random()*Math.PI*2, sp = 30+Math.random()*70;
@@ -1174,6 +1230,21 @@ function update(dt) {
       confetti(bnc.x, bnc.y-24, '#C065A8');
     }
   } else padProg.promo = Math.max(0, (padProg.promo||0) - dt*2);
+
+  if (boostLeft > 0) { boostLeft -= dt; if (boostLeft <= 0) { boostLeft = 0; boostCd = BOOST_COOL; } }
+  else if (boostCd > 0) boostCd -= dt;
+  const tbc = { x:L.turbo.x+L.turbo.w/2, y:L.turbo.y+L.turbo.h/2 };
+  if (!boostLeft && boostCd <= 0 && trading() && !tourOn &&
+      dist(player.x,player.y,tbc.x,tbc.y) < 74 && state.cash >= boostCost()) {
+    padProg.turbo = (padProg.turbo||0) + dt;
+    if (padProg.turbo >= 0.8) {
+      padProg.turbo = 0;
+      state.cash -= boostCost();
+      boostLeft = BOOST_SECS; sBuy();
+      confetti(tbc.x, tbc.y-24, '#4EC0CE');
+      toast('Turbo! Everything runs at ' + BOOST_X + 'x for ' + BOOST_SECS + 's');
+    }
+  } else padProg.turbo = Math.max(0, (padProg.turbo||0) - dt*2);
   clientT -= dt;
   if (clientT <= 0) {
     spawnClient();
@@ -1446,6 +1517,8 @@ function update(dt) {
   parts.forEach(p => { p.life -= dt; p.x += p.vx*dt; p.y += p.vy*dt; p.vy += 320*dt; });
   parts = parts.filter(p => p.life > 0);
   coinFx.forEach(c => { c.t += dt; });
+  crossFx.forEach(c => { c.life -= dt; c.y -= 26*dt; });
+  crossFx = crossFx.filter(c => c.life > 0);
   const coinLanded = coinFx.some(c => c.t >= c.dur);
   coinFx = coinFx.filter(c => c.t < c.dur);
   if (coinLanded) {
@@ -1771,6 +1844,25 @@ function render() {
   ctx.fillStyle = 'rgba(95,70,130,0.85)'; ctx.font = F(600, 12);
   ctext('Bank', bk.x + bk.w/2, bk.y - 12);
 
+  const tb = L.turbo, tbLocked = !trading();
+  const tbReady = !tbLocked && !boostLeft && boostCd <= 0;
+  block3d(tb.x, tb.y, tb.w, tb.h, 10, tbReady ? '#8FD9E8' : '#C2CFD4', 12);
+  ctx.fillStyle = 'rgba(255,255,255,0.9)'; rr(tb.x+9, tb.y+9, tb.w-18, tb.h-34, 7); ctx.fill();
+  ctx.fillStyle = tbReady ? '#1E6E80' : '#8A8078';
+  ctx.font = FT(20); ctx.textAlign = 'center';
+  ctx.fillText('\u26A1', tb.x+tb.w/2, tb.y+34);
+  ctx.font = F(700, 11);
+  ctx.fillText(BOOST_X + 'x', tb.x+tb.w/2, tb.y+52);
+  ctx.font = F(600, 13); ctx.fillStyle = 'rgba(95,70,130,0.85)';
+  if (tbLocked) ctext('Opens after 3 placements', tb.x+tb.w/2, tb.y-10);
+  else if (boostLeft > 0) ctext('Turbo ' + Math.ceil(boostLeft) + 's', tb.x+tb.w/2, tb.y-10);
+  else if (boostCd > 0) ctext('Ready in ' + Math.ceil(boostCd) + 's', tb.x+tb.w/2, tb.y-10);
+  else ctext('Turbo ' + fmt(boostCost()), tb.x+tb.w/2, tb.y-10);
+  if ((padProg.turbo||0) > 0.02) {
+    ctx.strokeStyle = '#1E6E80'; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.arc(tb.x+tb.w/2, tb.y+tb.h/2, 56, -Math.PI/2, -Math.PI/2 + (padProg.turbo/0.8)*Math.PI*2); ctx.stroke();
+  }
+
   const bn = L.banner;
   const promoLocked = !trading();
   const promoReady = !promoLocked && !rushOn && promoCd <= 0;
@@ -1854,6 +1946,8 @@ function render() {
       ctx.fillStyle = 'rgba(59,50,39,0.35)';
       for (let i = 0; i < 2; i++) rr(bdx - pw/2 + 2.5*CAND_SC, bdy - 1 + i*4*CAND_SC, pw - 5*CAND_SC, 1.4*CAND_SC, 1); ctx.fill();
     }
+
+    if (c.rej) drawCross(c.x + 15*CAND_SC, c.y - 30*CAND_SC, 11*CAND_SC, 1);
 
     if (c.st === 'ready' && (c.readyT||0) > 20) {
       const wx = c.x+14, wy = c.y-36;
@@ -1945,6 +2039,7 @@ function render() {
     drawResume(player.x + Math.sin(performance.now()/150+i*1.1)*(1.5+i*0.8), player.y-46-i*7, Math.sin(performance.now()/150+i*1.1)*0.1, v));
 
   const chipW = cashChipWorld();
+  crossFx.forEach(c => drawCross(c.x, c.y, 11, Math.min(1, c.life*1.6)));
   coinFx.forEach(c => {
     if (c.t < 0) return;
     const k = Math.min(1, c.t / c.dur), e2 = k*k*(3-2*k);
@@ -1968,12 +2063,24 @@ function render() {
     ctx.globalAlpha = 1;
   });
 
+  if (boostLeft > 0) {
+    const bp = 0.8 + Math.sin(performance.now()/140)*0.2;
+    ctx.font = FT(15); ctx.textAlign = 'center';
+    const bl = '\u26A1 ' + BOOST_X + 'x  ' + Math.ceil(boostLeft) + 's';
+    const bbw = ctx.measureText(bl).width + 34;
+    ctx.fillStyle = 'rgba(30,110,128,' + (0.82 + 0.16*bp) + ')';
+    const by2 = rushOn ? 74 : 32;
+    rr(VW/2 - bbw/2, by2, bbw, 34, 17); ctx.fill();
+    ctx.fillStyle = '#EAFBFF'; ctx.fillText(bl, VW/2, by2 + 23);
+  }
   if (rushOn) {
     const pulse = 0.75 + Math.sin(performance.now()/160)*0.2;
-    ctx.fillStyle = 'rgba(200,80,40,' + pulse*0.9 + ')';
-    ctx.fillRect(0, 224, VW, 36);
-    ctx.font = FT(18); ctx.textAlign = 'center';
-    pop('PROMOTION LIVE  fees x1.5  ' + Math.ceil(rushLeft) + 's', VW/2, 249, '#FFF3D6');
+    ctx.font = FT(15); ctx.textAlign = 'center';
+    const label = 'PROMO  fees x1.5  ' + Math.ceil(rushLeft) + 's';
+    const bw = ctx.measureText(label).width + 34;
+    ctx.fillStyle = 'rgba(200,80,40,' + (0.82 + 0.16*pulse) + ')';
+    rr(VW/2 - bw/2, 32, bw, 34, 17); ctx.fill();
+    ctx.fillStyle = '#FFF3D6'; ctx.fillText(label, VW/2, 55);
   }
   ctx.font = F(500, 13); ctx.textAlign = 'right';
   ctx.fillStyle = 'rgba(80,55,110,0.6)';
@@ -2043,7 +2150,7 @@ let lastT = 0, saveT = 0;
 function loop(t) {
   const dt = Math.min(0.05, (t - lastT)/1000 || 0.016);
   lastT = t;
-  update(dt);
+  update(dt * timeScale());
   render();
   const cEl = $('cash'), cTxt = fmt(state.cash);
   const cCol = state.cash < 0 ? '#8A2418' : '';
@@ -2054,7 +2161,6 @@ function loop(t) {
     clearTimeout(cEl._p); cEl._p = setTimeout(() => cEl.classList.remove('pop'), 130);
   }
   const pr = passiveRate();
-  $('passiveTxt').textContent = pr ? '+' + fmt(pr) + '/min  ·  tap to travel' : 'Build your empire';
   const pc = $('payChip');
   if (!payrollOn()) pc.style.display = 'none';
   else {
