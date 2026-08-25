@@ -149,7 +149,8 @@ const UPCATS = [
   ['Marketing', ['ads','rep','patience','vipnet']],
   ['Office', ['booth','zone','ready','slots']]
 ];
-const PEOPLE_SC = 1.5;   // one dial for how chunky everyone on the floor reads
+const PEOPLE_SC = 1.8;   // one dial for how chunky everyone reads (~7% of screen height on a phone;
+                         // measured Pizza Ready sits at 7.8-10.7%, but it uses a follow camera)
 const CAND_SC = 0.82 * PEOPLE_SC;
 const STAFF_UNIFORM = '#4A5160';
 const ROLE_TAG = { sourcer:'S', rec:'R', am:'A', fin:'F' };
@@ -179,7 +180,7 @@ for (let i=0;i<6;i++) boothSlots.push({ x:340+i*66, y:534 });
 const readySpots = [];
 for (let i=0;i<6;i++) readySpots.push({ x:340+i*66, y:668 });
 const zoneSlots = [];
-for (let r=0;r<3;r++) for (let c=0;c<4;c++) zoneSlots.push({ x:522+c*60, y:314+r*46 });
+for (let r=0;r<3;r++) for (let c=0;c<4;c++) zoneSlots.push({ x:520+c*62, y:308+r*52 });
 const clientSlots = [ {x:316,y:992}, {x:428,y:992}, {x:540,y:992}, {x:652,y:992} ];
 
 let state = null;
@@ -1572,7 +1573,7 @@ function render() {
     ctx.beginPath(); ctx.ellipse(s.x, s.y+16, 15, 6, 0, 0, Math.PI*2); ctx.fill();
   });
   ctx.fillStyle = zFull ? '#B03A2E' : 'rgba(110,95,65,0.8)'; ctx.font = F(600, 13); ctx.textAlign='center';
-  ctx.fillText('Screened  ' + zn + '/' + zoneCap() + (zFull ? '  ·  screening paused' : ''), z.x+z.w/2, z.y-8);
+  ctext('Screened  ' + zn + '/' + zoneCap() + (zFull ? '  ·  screening paused' : ''), z.x+z.w/2, z.y-30);
 
 
 
@@ -1613,7 +1614,7 @@ function render() {
     ctx.beginPath(); ctx.ellipse(s.x, s.y+16, 15, 6, 0, 0, Math.PI*2); ctx.fill();
   });
   ctx.fillStyle = rFull ? '#B03A2E' : 'rgba(60,110,75,0.85)'; ctx.font = F(600, 13); ctx.textAlign='center';
-  ctx.fillText('Ready to place  ' + rn + '/' + readyCap() + (rFull ? '  ·  interviews paused' : ''), 520, 630);
+  ctext('Ready to place  ' + rn + '/' + readyCap() + (rFull ? '  ·  interviews paused' : ''), 520, 622);
 
   const bn = L.banner;
   const promoLocked = !trading();
